@@ -1,19 +1,9 @@
-# 🎯 Anti-ADHD
+# <img src="../docs/images/icon.png" width="32" height="32" style="vertical-align: middle"> Anti-ADHD
 
-<div align="center">
-
-![프로그램 스크린샷](images/screenshot.png)
-
-[![Release](https://img.shields.io/github/v/release/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/releases)
-[![License](https://img.shields.io/github/license/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/octxxiii/Anti-ADHD?style=social)](https://github.com/octxxiii/Anti-ADHD/stargazers)
-
-</div>
+아이젠하워 매트릭스를 기반으로 한 현대적인 할 일 관리 프로그램입니다.
+ADHD가 있는 사용자들을 위해 특별히 설계되었으며, 집중력 향상과 생산성 증대를 도와줍니다.
 
 ## 🌟 소개
-
-Anti-ADHD는 아이젠하워 매트릭스를 기반으로 한 현대적인 할 일 관리 프로그램입니다.
-ADHD가 있는 사용자들을 위해 특별히 설계되었으며, 집중력 향상과 생산성 증대를 도와줍니다.
 
 ### 핵심 가치
 
@@ -29,15 +19,14 @@ ADHD가 있는 사용자들을 위해 특별히 설계되었으며, 집중력 �
   - 드래그 앤 드롭으로 쉬운 우선순위 조정
   
 - 🎨 **현대적인 UI/UX**
+  - 다크/라이트 모드 지원
   - 투명도 조절 기능
   - 화면 상단 고정 옵션
-  - 깔끔한 미니멀 디자인
   
 - 💾 **스마트 기능**
   - 실시간 자동 저장
   - 자동 업데이트 확인
   - 클라우드 백업 (예정)
-  - 다크 모드 (예정)
 
 ## 🚀 시작하기
 

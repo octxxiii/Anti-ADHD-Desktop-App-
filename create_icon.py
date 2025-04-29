@@ -1,5 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont
-import sys
+import os
 
 try:
     print("아이콘 생성 시작...")
@@ -18,7 +18,7 @@ try:
     # 'A' 문자 그리기 (흰색)
     try:
         # Windows 기본 폰트
-        font = ImageFont.truetype("arial.ttf", 20)
+        font = ImageFont.truetype('arial.ttf', 20)
         print("Arial 폰트 로드 완료")
     except:
         # 폰트를 찾을 수 없는 경우 기본 폰트 사용
@@ -26,7 +26,7 @@ try:
         font = ImageFont.load_default()
     
     # 텍스트 중앙 정렬을 위한 위치 계산
-    text = "A"
+    text = 'A'
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
     text_height = text_bbox[3] - text_bbox[1]
@@ -38,12 +38,14 @@ try:
     draw.text((x, y), text, fill='white', font=font)
     print("텍스트 그리기 완료")
     
-    # 아이콘 파일 저장
-    img.save('app_icon.ico', format='ICO', sizes=[(32, 32)])
+    # docs/images 디렉토리 생성
+    os.makedirs('docs/images', exist_ok=True)
+    
+    # PNG로 저장
+    img.save('docs/images/icon.png')
     print("아이콘 파일 저장 완료")
     
     print("\n아이콘이 성공적으로 생성되었습니다!")
     
 except Exception as e:
-    print(f"\n오류 발생: {str(e)}")
-    sys.exit(1) 
+    print(f"\n오류 발생: {str(e)}") 

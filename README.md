@@ -1,12 +1,8 @@
-# 🎯 Anti-ADHD
+# <img src="docs/images/icon.png" width="32" height="32" style="vertical-align: middle"> Anti-ADHD
 
 > 아이젠하워 매트릭스로 ADHD를 이기는 할 일 관리 프로그램
 
 <div align="center">
-  
-[![Release](https://img.shields.io/github/v/release/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/releases)
-[![License](https://img.shields.io/github/license/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/octxxiii/Anti-ADHD?style=social)](https://github.com/octxxiii/Anti-ADHD/stargazers)
 
 [📖 문서](https://octxxiii.github.io/Anti-ADHD) •
 [🚀 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest) •
@@ -17,6 +13,7 @@
 ## ✨ 주요 기능
 
 - 🎯 **아이젠하워 매트릭스** - 중요도와 긴급도에 따른 할 일 분류
+- 🌓 **다크 모드** - 눈의 피로를 줄이는 다크 테마 지원
 - 📌 **항상 위** - 작업 표시줄 상단에 고정 가능
 - 🔍 **투명도 조절** - 작업에 방해되지 않는 투명도 설정
 - 💾 **자동 저장** - 변경사항 실시간 저장
@@ -41,7 +38,7 @@
 
 3. **설정**
    - ⚙️ 버튼을 클릭하여 설정을 엽니다.
-   - 투명도, 항상 위 등을 설정할 수 있습니다.
+   - 다크 모드, 투명도, 항상 위 등을 설정할 수 있습니다.
 
 ## 🤝 기여하기
 
