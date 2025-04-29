@@ -2,65 +2,40 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 def create_icon():
-    # 기본 크기를 256x256으로 시작
-    size = 256
-    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
+    # 512x512 크기의 이미지 생성
+    size = 512
+    image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
     
-    # 원 크기 계산
-    padding = size // 16
-    circle_bbox = [padding, padding, size - padding, size - padding]
+    # 배경 원 그리기
+    draw.ellipse([(0, 0), (size, size)], fill=(41, 47, 54))
     
-    # 파란색 원 그리기 (#0078d7 - Windows 10 기본 파란색)
-    draw.ellipse(circle_bbox, fill='#0078d7')
+    # 중앙 원 그리기
+    center_size = int(size * 0.7)
+    center_pos = (size - center_size) // 2
+    draw.ellipse([(center_pos, center_pos), 
+                 (size - center_pos, size - center_pos)], 
+                 fill=(33, 38, 45))  # 더 어두운 색상
     
-    # 폰트 크기 계산 (원 크기의 약 60%)
-    font_size = int(size * 0.6)
+    # "A" 문자 그리기
     try:
-        # Windows 기본 폰트
-        font = ImageFont.truetype("arial.ttf", font_size)
+        font = ImageFont.truetype("arial.ttf", int(size * 0.4))
     except:
-        try:
-            # Windows 기본 볼드 폰트
-            font = ImageFont.truetype("arialbd.ttf", font_size)
-        except:
-            font = ImageFont.load_default()
+        font = ImageFont.load_default()
     
-    # "A" 문자 그리기 (중앙 정렬)
     text = "A"
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
     text_height = text_bbox[3] - text_bbox[1]
-    x = (size - text_width) // 2
-    y = (size - text_height) // 2 - (size // 16)  # 약간 위로 조정
     
-    # 흰색으로 "A" 문자 그리기
-    draw.text((x, y), text, fill='white', font=font)
+    text_x = (size - text_width) // 2
+    text_y = (size - text_height) // 2
     
-    # 여러 크기로 아이콘 저장
-    sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-    icon_images = []
+    # 메인 텍스트
+    draw.text((text_x, text_y), text, font=font, fill=(255, 255, 255))
     
-    for icon_size in sizes:
-        resized = img.resize(icon_size, Image.Resampling.LANCZOS)
-        icon_images.append(resized)
-    
-    # 임시 파일들 생성
-    temp_files = []
-    for i, image in enumerate(icon_images):
-        temp_file = f'temp_icon_{i}.png'
-        image.save(temp_file, 'PNG')
-        temp_files.append(temp_file)
-    
-    # 아이콘 파일로 저장
-    icon_images[0].save('icon.ico', format='ICO', sizes=sizes)
-    
-    # 임시 파일 삭제
-    for temp_file in temp_files:
-        try:
-            os.remove(temp_file)
-        except:
-            pass
+    # 아이콘 저장
+    image.save('icon.ico', format='ICO', sizes=[(256, 256), (128, 128), (64, 64), (32, 32)])
 
 if __name__ == "__main__":
     create_icon() 
