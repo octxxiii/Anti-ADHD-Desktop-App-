@@ -3,6 +3,9 @@ site_description: 아이젠하워 매트릭스로 ADHD를 이기는 할 일 관�
 site_author: octxxiii
 site_url: https://octxxiii.github.io/Anti-ADHD
 
+repo_name: octxxiii/Anti-ADHD
+repo_url: https://github.com/octxxiii/Anti-ADHD
+
 theme:
   name: material
   language: ko
