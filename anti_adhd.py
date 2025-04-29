@@ -350,6 +350,15 @@ del "%~f0"
         github_link.pack(side="left")
         github_link.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/octxxiii/Anti-ADHD"))
         
+        # 문서 링크
+        docs_frame = ttk.Frame(program_info_frame)
+        docs_frame.pack(pady=5)
+        docs_label = ttk.Label(docs_frame, text="문서: ", style="Info.TLabel")
+        docs_label.pack(side="left")
+        docs_link = ttk.Label(docs_frame, text="사용자 가이드", style="Info.TLabel", foreground="blue", cursor="hand2")
+        docs_link.pack(side="left")
+        docs_link.bind("<Button-1>", lambda e: webbrowser.open("https://octxxiii.github.io/Anti-ADHD/"))
+        
         # 라이선스 정보
         license_frame = ttk.LabelFrame(info_frame, text="라이선스", padding=10)
         license_frame.pack(fill="both", expand=True, padx=10, pady=5)
