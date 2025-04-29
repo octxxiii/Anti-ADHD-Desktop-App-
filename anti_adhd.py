@@ -15,6 +15,27 @@ import webbrowser
 VERSION = "1.0.1"
 GITHUB_REPO = "octxxiii/Anti-ADHD"
 
+# 테마 색상
+LIGHT_THEME = {
+    'bg': '#ffffff',
+    'fg': '#000000',
+    'select_bg': '#0078d7',
+    'select_fg': '#ffffff',
+    'listbox_bg': '#ffffff',
+    'listbox_fg': '#000000',
+    'frame_bg': '#f0f0f0'
+}
+
+DARK_THEME = {
+    'bg': '#1e1e1e',
+    'fg': '#ffffff',
+    'select_bg': '#264f78',
+    'select_fg': '#ffffff',
+    'listbox_bg': '#2d2d2d',
+    'listbox_fg': '#ffffff',
+    'frame_bg': '#333333'
+}
+
 class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
@@ -25,8 +46,16 @@ class QuadrantChecklist:
         self.current_version = VERSION
         self.github_repo = GITHUB_REPO
         
+        # 테마 설정
+        self.is_dark_mode = False
+        self.current_theme = LIGHT_THEME
+        
         # 시작 시 업데이트 확인
         self.check_for_updates()
+        
+        # 스타일 설정
+        self.style = ttk.Style()
+        self.apply_theme()
         
         # 아이콘 생성 및 설정
         try:
@@ -173,8 +202,14 @@ class QuadrantChecklist:
         right_buttons.pack(side="right", padx=2, pady=0)  # 상하 여백 제거
         
         # 스타일 설정
-        style = ttk.Style()
-        style.configure('Icon.TButton', padding=1)  # padding 값 감소
+        self.style.configure('Icon.TButton', padding=1)  # padding 값 감소
+        
+        # 다크 모드 토글 버튼
+        theme_icon = "🌓"
+        self.theme_button = ttk.Button(right_buttons, text=theme_icon, width=3,
+                                     style='Icon.TButton',
+                                     command=self.toggle_theme)
+        self.theme_button.pack(side="left", padx=1)
         
         # 불투명도 조절
         opacity_frame = ttk.Frame(right_buttons)
@@ -218,6 +253,9 @@ class QuadrantChecklist:
         
         # 프로그램 시작 시 첫 번째 입력 필드에 포커스 설정
         self.root.after(100, self.initial_focus)
+        
+        # 설정 불러오기
+        self.load_settings()
     
     def check_for_updates(self):
         try:
@@ -889,6 +927,83 @@ Copyright (c) 2024 octxxiii
                 os.remove(temp_file)
             except:
                 pass
+
+    def apply_theme(self):
+        theme = self.current_theme
+        
+        # TTK 스타일 설정
+        self.style.configure('TFrame', background=theme['bg'])
+        self.style.configure('TLabelframe', background=theme['bg'])
+        self.style.configure('TLabelframe.Label', background=theme['bg'], foreground=theme['fg'])
+        self.style.configure('TButton', background=theme['bg'], foreground=theme['fg'])
+        self.style.configure('TEntry', fieldbackground=theme['listbox_bg'], foreground=theme['fg'])
+        self.style.configure('TScale', background=theme['bg'], troughcolor=theme['frame_bg'])
+        
+        # 루트 윈도우 설정
+        self.root.configure(bg=theme['bg'])
+        
+        # 리스트박스 설정
+        for listbox in self.lists:
+            listbox.configure(
+                bg=theme['listbox_bg'],
+                fg=theme['listbox_fg'],
+                selectbackground=theme['select_bg'],
+                selectforeground=theme['select_fg']
+            )
+        
+        # 프레임 설정
+        for frame in self.frames:
+            frame.configure(style='TLabelframe')
+            
+        # 컨텍스트 메뉴 설정
+        self.context_menu.configure(
+            bg=theme['listbox_bg'],
+            fg=theme['listbox_fg'],
+            activebackground=theme['select_bg'],
+            activeforeground=theme['select_fg']
+        )
+
+    def toggle_theme(self):
+        self.is_dark_mode = not self.is_dark_mode
+        self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
+        self.apply_theme()
+        
+        # 설정 저장
+        self.save_settings()
+
+    def save_settings(self):
+        settings = {
+            'is_dark_mode': self.is_dark_mode,
+            'opacity': self.opacity,
+            'is_pinned': self.is_pinned
+        }
+        
+        try:
+            with open('settings.json', 'w', encoding='utf-8') as f:
+                json.dump(settings, f)
+        except Exception as e:
+            print(f"설정 저장 중 오류 발생: {str(e)}")
+
+    def load_settings(self):
+        try:
+            if os.path.exists('settings.json'):
+                with open('settings.json', 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    
+                self.is_dark_mode = settings.get('is_dark_mode', False)
+                self.opacity = settings.get('opacity', 1.0)
+                self.is_pinned = settings.get('is_pinned', True)
+                
+                self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
+                self.apply_theme()
+                
+                # 불투명도와 고정 상태 적용
+                self.opacity_scale.set(self.opacity)
+                self.update_opacity(self.opacity)
+                if self.is_pinned:
+                    self.root.attributes('-topmost', True)
+        except Exception as e:
+            print(f"설정 불러오기 중 오류 발생: {str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()
