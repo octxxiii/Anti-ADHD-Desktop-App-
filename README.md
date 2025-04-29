@@ -53,7 +53,7 @@
 ## ⚙️ 개발 정보
 
 - 버전: 1.0
-- 개발자: OctXXIII
+- 개발자: MinJun Kim
 - 이메일: kdyw123@gmail.com
 
 ## 🛠️ 직접 빌드하기
