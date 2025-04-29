@@ -1,0 +1,22 @@
+# 데이터 파일 제외
+*.json
+
+# Python 관련 파일 제외
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 가상 환경 제외
+venv/
+env/
+.env/
+
+# IDE 관련 파일 제외
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 운영체제 관련 파일 제외
+.DS_Store
+Thumbs.db 
