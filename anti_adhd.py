@@ -26,16 +26,6 @@ LIGHT_THEME = {
     'frame_bg': '#f0f0f0'
 }
 
-DARK_THEME = {
-    'bg': '#1e1e1e',
-    'fg': '#ffffff',
-    'select_bg': '#264f78',
-    'select_fg': '#ffffff',
-    'listbox_bg': '#2d2d2d',
-    'listbox_fg': '#ffffff',
-    'frame_bg': '#333333'
-}
-
 class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
@@ -47,7 +37,6 @@ class QuadrantChecklist:
         self.github_repo = GITHUB_REPO
         
         # 테마 설정
-        self.is_dark_mode = False
         self.current_theme = LIGHT_THEME
         
         # 시작 시 업데이트 확인
@@ -55,63 +44,6 @@ class QuadrantChecklist:
         
         # 스타일 설정
         self.style = ttk.Style()
-        self.apply_theme()
-        
-        # 아이콘 생성 및 설정
-        try:
-            # 32x32 크기의 이미지 생성
-            img = Image.new('RGBA', (32, 32), color=(0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            
-            # 배경 원 그리기 (진한 파란색)
-            draw.ellipse([2, 2, 30, 30], fill='#1E90FF')
-            
-            # 'A' 문자 그리기 (흰색)
-            try:
-                # Windows 기본 폰트
-                font = ImageFont.truetype("arial.ttf", 20)
-            except:
-                # 폰트를 찾을 수 없는 경우 기본 폰트 사용
-                font = ImageFont.load_default()
-            
-            # 텍스트 중앙 정렬을 위한 위치 계산
-            text = "A"
-            text_bbox = draw.textbbox((0, 0), text, font=font)
-            text_width = text_bbox[2] - text_bbox[0]
-            text_height = text_bbox[3] - text_bbox[1]
-            x = (32 - text_width) // 2
-            y = (32 - text_height) // 2 - 2  # 약간 위로 조정
-            
-            # 흰색으로 'A' 그리기
-            draw.text((x, y), text, fill='white', font=font)
-            
-            # 임시 PNG 파일로 저장 후 ICO로 변환
-            temp_png = "temp_icon.png"
-            temp_ico = "temp_icon.ico"
-            
-            img.save(temp_png)
-            
-            # PNG를 ICO로 변환
-            ico_img = Image.open(temp_png)
-            ico_img.save(temp_ico, format='ICO', sizes=[(32, 32)])
-            
-            # 아이콘 설정
-            self.root.iconbitmap(temp_ico)
-            
-            # 임시 파일 삭제
-            try:
-                os.remove(temp_png)
-                os.remove(temp_ico)
-            except:
-                pass
-        except Exception as e:
-            print(f"아이콘 설정 중 오류 발생: {str(e)}")
-        
-        # 그리드 가중치 설정 - 더 큰 가중치 부여
-        for i in range(2):
-            root.grid_rowconfigure(i, weight=3)  # 상단 행들의 가중치 증가
-            root.grid_columnconfigure(i, weight=1)
-        root.grid_rowconfigure(2, weight=1)  # 하단 버튼 행의 가중치
         
         # 데이터 저장 파일 경로
         self.data_file = "checklist_data.json"
@@ -204,13 +136,6 @@ class QuadrantChecklist:
         # 스타일 설정
         self.style.configure('Icon.TButton', padding=1)  # padding 값 감소
         
-        # 다크 모드 토글 버튼
-        theme_icon = "🌓"
-        self.theme_button = ttk.Button(right_buttons, text=theme_icon, width=3,
-                                     style='Icon.TButton',
-                                     command=self.toggle_theme)
-        self.theme_button.pack(side="left", padx=1)
-        
         # 불투명도 조절
         opacity_frame = ttk.Frame(right_buttons)
         opacity_frame.pack(side="left", padx=1)  # padx 값 감소
@@ -256,6 +181,9 @@ class QuadrantChecklist:
         
         # 설정 불러오기
         self.load_settings()
+        
+        # 테마 적용
+        self.apply_theme()
     
     def check_for_updates(self):
         try:
@@ -963,17 +891,8 @@ Copyright (c) 2024 octxxiii
             activeforeground=theme['select_fg']
         )
 
-    def toggle_theme(self):
-        self.is_dark_mode = not self.is_dark_mode
-        self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
-        self.apply_theme()
-        
-        # 설정 저장
-        self.save_settings()
-
     def save_settings(self):
         settings = {
-            'is_dark_mode': self.is_dark_mode,
             'opacity': self.opacity,
             'is_pinned': self.is_pinned
         }
@@ -990,12 +909,8 @@ Copyright (c) 2024 octxxiii
                 with open('settings.json', 'r', encoding='utf-8') as f:
                     settings = json.load(f)
                     
-                self.is_dark_mode = settings.get('is_dark_mode', False)
                 self.opacity = settings.get('opacity', 1.0)
                 self.is_pinned = settings.get('is_pinned', True)
-                
-                self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
-                self.apply_theme()
                 
                 # 불투명도와 고정 상태 적용
                 self.opacity_scale.set(self.opacity)
