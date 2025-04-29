@@ -79,6 +79,9 @@ class QuadrantChecklist:
         self.context_menu.add_command(label="수정", command=self.edit_item)
         self.context_menu.add_command(label="삭제", command=self.delete_selected_item)
         
+        # 자동 업데이트 설정
+        self.auto_update_enabled = True
+        
         # 각 카테고리별 프레임 생성
         for i in range(4):
             frame = ttk.LabelFrame(root, text=categories[i])
@@ -186,6 +189,10 @@ class QuadrantChecklist:
         self.apply_theme()
     
     def check_for_updates(self):
+        # 자동 업데이트가 비활성화되어 있으면 확인하지 않음
+        if not self.auto_update_enabled:
+            return
+        
         try:
             # GitHub API를 통해 최신 릴리즈 정보 가져오기
             response = requests.get(f"https://api.github.com/repos/{self.github_repo}/releases/latest")
@@ -198,19 +205,7 @@ class QuadrantChecklist:
                     # 업데이트 확인 다이얼로그
                     update_message = f"새로운 버전 {latest_version}이(가) 있습니다.\n현재 버전: {self.current_version}\n\n릴리즈 노트:\n{latest_release.get('body', '')}\n\n업데이트하시겠습니까?"
                     if messagebox.askyesno("업데이트 확인", update_message):
-                        # 다운로드 URL 가져오기
-                        download_url = None
-                        for asset in latest_release.get('assets', []):
-                            if asset['name'].endswith('.exe'):  # Windows용 실행 파일
-                                download_url = asset['browser_download_url']
-                                break
-                        
-                        if download_url:
-                            # 다운로드 및 설치
-                            self.download_and_install_update(download_url)
-                        else:
-                            # 웹 브라우저에서 릴리즈 페이지 열기
-                            webbrowser.open(latest_release['html_url'])
+                        webbrowser.open(latest_release["html_url"])
         except Exception as e:
             print(f"업데이트 확인 중 오류 발생: {e}")
 
@@ -262,74 +257,41 @@ del "%~f0"
     def show_settings(self):
         settings_window = tk.Toplevel(self.root)
         settings_window.title("설정")
+        settings_window.geometry("400x500")
+        settings_window.resizable(False, False)
+        
+        # 설정 창이 부모 창의 중앙에 표시되도록 위치 조정
         settings_window.transient(self.root)
         settings_window.grab_set()
         
-        # 설정 창 크기 설정
-        window_width = 350
-        window_height = 400
-        
-        # 메인 창의 중앙 위치 계산
-        main_x = self.root.winfo_x()
-        main_y = self.root.winfo_y()
-        main_width = self.root.winfo_width()
-        main_height = self.root.winfo_height()
-        
-        # 설정 창 위치 계산 (메인 창 중앙)
-        x = main_x + (main_width - window_width) // 2
-        y = main_y + (main_height - window_height) // 2
-        
-        # 설정 창 크기와 위치 설정
-        settings_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        
-        # 설정 창에 아이콘 설정
-        try:
-            settings_window.iconbitmap("app_icon.ico")
-        except:
-            try:
-                # 임시 아이콘 생성
-                img = Image.new('RGBA', (32, 32), color=(0, 0, 0, 0))
-                draw = ImageDraw.Draw(img)
-                draw.ellipse([2, 2, 30, 30], fill='#1E90FF')
-                try:
-                    font = ImageFont.truetype("arial.ttf", 20)
-                except:
-                    font = ImageFont.load_default()
-                text = "A"
-                text_bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = text_bbox[2] - text_bbox[0]
-                text_height = text_bbox[3] - text_bbox[1]
-                x = (32 - text_width) // 2
-                y = (32 - text_height) // 2 - 2
-                draw.text((x, y), text, fill='white', font=font)
-                
-                temp_ico = "temp_settings_icon.ico"
-                img.save(temp_ico, format='ICO', sizes=[(32, 32)])
-                settings_window.iconbitmap(temp_ico)
-                os.remove(temp_ico)
-            except:
-                pass
-        
-        # 노트북(탭) 생성
+        # 노트북 생성
         notebook = ttk.Notebook(settings_window)
-        notebook.pack(fill="both", expand=True, padx=5, pady=5)  # 여백 축소
+        notebook.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # 데이터 관리 탭
-        data_frame = ttk.Frame(notebook)
-        notebook.add(data_frame, text="데이터 관리")
+        # 일반 설정 탭
+        general_frame = ttk.Frame(notebook)
+        notebook.add(general_frame, text="일반")
         
         # 자동 저장 설정
-        auto_save_frame = ttk.LabelFrame(data_frame, text="자동 저장")
-        auto_save_frame.pack(fill="x", padx=3, pady=3)  # 여백 축소
+        save_frame = ttk.LabelFrame(general_frame, text="자동 저장", padding=(10, 5))
+        save_frame.pack(fill="x", padx=5, pady=5)
         
         auto_save_var = tk.BooleanVar(value=self.auto_save_enabled)
-        auto_save_check = ttk.Checkbutton(auto_save_frame, text="자동 저장 사용", 
-                                        variable=auto_save_var,
-                                        command=lambda: self.toggle_auto_save(auto_save_var.get()))
-        auto_save_check.pack(side="left", padx=3, pady=3)  # 여백 축소
+        ttk.Checkbutton(save_frame, text="자동 저장 사용", 
+                        variable=auto_save_var,
+                        command=lambda: self.toggle_auto_save(auto_save_var.get())).pack(anchor="w")
+        
+        # 자동 업데이트 설정
+        update_frame = ttk.LabelFrame(general_frame, text="자동 업데이트", padding=(10, 5))
+        update_frame.pack(fill="x", padx=5, pady=5)
+        
+        auto_update_var = tk.BooleanVar(value=self.auto_update_enabled)
+        ttk.Checkbutton(update_frame, text="자동 업데이트 확인", 
+                        variable=auto_update_var,
+                        command=lambda: self.toggle_auto_update(auto_update_var.get())).pack(anchor="w")
         
         # 수동 저장/불러오기 버튼
-        manual_save_frame = ttk.LabelFrame(data_frame, text="데이터 관리")
+        manual_save_frame = ttk.LabelFrame(general_frame, text="데이터 관리")
         manual_save_frame.pack(fill="x", padx=3, pady=3)  # 여백 축소
         
         button_frame = ttk.Frame(manual_save_frame)
@@ -894,14 +856,16 @@ Copyright (c) 2024 octxxiii
     def save_settings(self):
         settings = {
             'opacity': self.opacity,
-            'is_pinned': self.is_pinned
+            'is_pinned': self.is_pinned,
+            'auto_save_enabled': self.auto_save_enabled,
+            'auto_update_enabled': self.auto_update_enabled  # 자동 업데이트 설정 추가
         }
         
         try:
             with open('settings.json', 'w', encoding='utf-8') as f:
-                json.dump(settings, f)
+                json.dump(settings, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"설정 저장 중 오류 발생: {str(e)}")
+            print(f"설정 저장 중 오류 발생: {e}")
 
     def load_settings(self):
         try:
@@ -909,16 +873,24 @@ Copyright (c) 2024 octxxiii
                 with open('settings.json', 'r', encoding='utf-8') as f:
                     settings = json.load(f)
                     
-                self.opacity = settings.get('opacity', 1.0)
+                self.opacity = settings.get('opacity', 1)
                 self.is_pinned = settings.get('is_pinned', True)
+                self.auto_save_enabled = settings.get('auto_save_enabled', True)
+                self.auto_update_enabled = settings.get('auto_update_enabled', True)  # 자동 업데이트 설정 추가
                 
-                # 불투명도와 고정 상태 적용
+                # 설정 적용
                 self.opacity_scale.set(self.opacity)
-                self.update_opacity(self.opacity)
-                if self.is_pinned:
-                    self.root.attributes('-topmost', True)
+                self.root.attributes('-alpha', self.opacity)
+                self.root.attributes('-topmost', self.is_pinned)
+                
+                if not self.auto_save_enabled:
+                    self.root.after_cancel(self.auto_save_job)
         except Exception as e:
-            print(f"설정 불러오기 중 오류 발생: {str(e)}")
+            print(f"설정 로드 중 오류 발생: {e}")
+
+    def toggle_auto_update(self, enabled):
+        self.auto_update_enabled = enabled
+        self.save_settings()
 
 if __name__ == "__main__":
     root = tk.Tk()
