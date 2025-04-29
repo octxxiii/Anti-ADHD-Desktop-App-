@@ -2,7 +2,7 @@
 
 > 아이젠하워 매트릭스로 ADHD를 이기는 할 일 관리 프로그램
 
-[📖 문서](https://octxxiii.github.io/Anti-ADHD) • [🚀 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest) • [🐛 이슈 제보](https://github.com/octxxiii/Anti-ADHD/issues)
+[📖 문서](https://octxxiii.github.io/Anti-ADHD){target=_blank} • [🚀 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest){target=_blank} • [🐛 이슈 제보](https://github.com/octxxiii/Anti-ADHD/issues){target=_blank}
 
 ## ✨ 주요 기능
 
@@ -14,7 +14,7 @@
 
 ## 🚀 시작하기
 
-1. [릴리즈 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest)에서 최신 버전의 `anti_adhd.exe` 다운로드
+1. [릴리즈 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest){target=_blank}에서 최신 버전의 `anti_adhd.exe` 다운로드
 2. 다운로드한 파일 실행
 3. 프로그램을 실행하고 할 일을 관리하세요!
 
@@ -35,14 +35,11 @@
 - ⚙️ 버튼을 클릭하여 설정 창 열기
 - 투명도, 항상 위 등 설정 가능
 
-## 📝 라이선스
+## 👨‍💻 개발자 및 라이선스
 
-이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE) 파일을 참고하세요.
-
-## 👨‍💻 개발자
-
-- GitHub: [@octxxiii](https://github.com/octxxiii)
-- 이메일: kdyw123@gmail.com
+- GitHub: [@octxxiii](https://github.com/octxxiii){target=_blank}
+- 이메일: [kdyw123@gmail.com](mailto:kdyw123@gmail.com)
+- 라이선스: [MIT License](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE){target=_blank}
 
 ## 🤝 기여하기
 
