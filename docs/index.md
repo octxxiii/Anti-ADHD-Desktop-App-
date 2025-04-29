@@ -2,7 +2,7 @@
 
 > 아이젠하워 매트릭스로 ADHD를 이기는 할 일 관리 프로그램
 
-[📖 문서](https://octxxiii.github.io/Anti-ADHD){target=_blank} • [🚀 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest){target=_blank} • [🐛 이슈 제보](https://github.com/octxxiii/Anti-ADHD/issues){target=_blank}
+[:octicons-book-24: 문서](https://octxxiii.github.io/Anti-ADHD){ .md-button } [:octicons-download-24: 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest){ .md-button } [:octicons-bug-24: 이슈 제보](https://github.com/octxxiii/Anti-ADHD/issues){ .md-button }
 
 ## ✨ 주요 기능
 
@@ -14,11 +14,12 @@
 
 ## 🚀 시작하기
 
-1. [릴리즈 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest){target=_blank}에서 최신 버전의 `anti_adhd.exe` 다운로드
+1. [릴리즈 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest)에서 최신 버전의 `anti_adhd.exe` 다운로드
 2. 다운로드한 파일 실행
 3. 프로그램을 실행하고 할 일을 관리하세요!
 
-> ※ 현재 Windows 운영체제만 지원합니다.
+!!! note "지원 환경"
+    현재 Windows 운영체제만 지원합니다.
 
 ## 🎨 사용법
 
@@ -37,9 +38,9 @@
 
 ## 👨‍💻 개발자 및 라이선스
 
-- GitHub: [@octxxiii](https://github.com/octxxiii){target=_blank}
-- 이메일: [kdyw123@gmail.com](mailto:kdyw123@gmail.com)
-- 라이선스: [MIT License](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE){target=_blank}
+- [:octicons-mark-github-16: GitHub](https://github.com/octxxiii){ .md-button .md-button--primary }
+- [:octicons-mail-16: 이메일](mailto:kdyw123@gmail.com){ .md-button .md-button--primary }
+- [:octicons-law-16: MIT License](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE){ .md-button .md-button--primary }
 
 ## 🤝 기여하기
 
