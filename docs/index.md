@@ -1,37 +1,58 @@
-# Anti-ADHD 프로그램
+# 🎯 Anti-ADHD
+
+<div align="center">
 
 ![프로그램 스크린샷](images/screenshot.png)
 
-## 🎯 프로그램 소개
+[![Release](https://img.shields.io/github/v/release/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/releases)
+[![License](https://img.shields.io/github/license/octxxiii/Anti-ADHD)](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/octxxiii/Anti-ADHD?style=social)](https://github.com/octxxiii/Anti-ADHD/stargazers)
 
-아이젠하워 매트릭스 방식으로 할 일을 관리하는 프로그램입니다.
-중요도와 긴급도에 따라 할 일을 4분면으로 나누어 관리할 수 있습니다.
+</div>
 
-## ⭐ 주요 기능
+## 🌟 소개
 
-- **4분면 매트릭스**: 할 일을 중요도와 긴급도에 따라 구분
-- **메모 기능**: 각 항목에 상세 메모 추가 가능
-- **자동 저장**: 작성한 내용 자동 저장
-- **투명도 조절**: 화면 투명도 조절 가능
-- **화면 고정**: 항상 위에 표시 가능
-- **프린트**: 작성한 내용 프린트 가능
+Anti-ADHD는 아이젠하워 매트릭스를 기반으로 한 현대적인 할 일 관리 프로그램입니다.
+ADHD가 있는 사용자들을 위해 특별히 설계되었으며, 집중력 향상과 생산성 증대를 도와줍니다.
 
-## 📥 다운로드 및 설치
+### 핵심 가치
 
-1. [다운로드 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest)에서 `anti_adhd.exe` 다운로드
-2. 다운로드한 파일을 실행하면 바로 사용 가능
+- 🎯 **집중**: 중요한 일에 집중할 수 있도록 도와줍니다
+- 🎨 **단순함**: 깔끔한 UI로 사용자의 주의를 분산시키지 않습니다
+- ⚡ **효율**: 빠르고 직관적인 작업 관리가 가능합니다
+- 🔄 **유연성**: 상황에 따라 쉽게 우선순위를 조정할 수 있습니다
 
-※ Windows 운영체제만 지원합니다.
+## ✨ 주요 기능
 
-## 🔍 더 알아보기
+- 🎯 **아이젠하워 매트릭스**
+  - 중요도와 긴급도에 따른 4분면 구분
+  - 드래그 앤 드롭으로 쉬운 우선순위 조정
+  
+- 🎨 **현대적인 UI/UX**
+  - 다크/라이트 모드 지원
+  - 투명도 조절 기능
+  - 화면 상단 고정 옵션
+  
+- 💾 **스마트 기능**
+  - 실시간 자동 저장
+  - 자동 업데이트 확인
+  - 클라우드 백업 (예정)
 
-- [사용 방법](user-guide.md)
-- [자주 묻는 질문](faq.md)
-- [문제 해결](troubleshooting.md)
+## 🚀 시작하기
 
-## 💡 도움말
+1. [최신 버전 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest)
+2. `anti_adhd.exe` 실행
+3. 바로 사용 시작!
 
-프로그램 사용 중 궁금한 점이나 문제가 있다면:
-- [자주 묻는 질문](faq.md)을 확인해보세요
-- [문제 해결 가이드](troubleshooting.md)를 참고하세요
-- [이메일](mailto:kdyw123@gmail.com)로 문의해주세요 
+※ Windows 운영체제 전용
+
+## 📚 가이드
+
+- [📖 상세 사용 방법](user-guide.md)
+- [❓ 자주 묻는 질문](faq.md)
+- [🔧 문제 해결](troubleshooting.md)
+
+## 🤝 도움받기
+
+- [GitHub 이슈](https://github.com/octxxiii/Anti-ADHD/issues)
+- [이메일 문의](mailto:kdyw123@gmail.com) 
