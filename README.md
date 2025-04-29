@@ -4,7 +4,7 @@
 
 ## 📥 다운로드
 
-- [Windows 실행 파일 다운로드](https://github.com/kdyw12/ANTI-ADHD/releases/latest/download/ANTI_ADHD.exe)
+- [Windows 실행 파일 다운로드](https://github.com/octxxiii/4ADHD/releases/latest/download/ANTI_ADHD.exe)
 
 ## ✨ 주요 기능
 
@@ -87,7 +87,7 @@
 
 4. 실행 파일 생성
    ```bash
-   pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name=ANTI_ADHD quadrant_checklist.py
+   pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name=ANTI_ADHD anti_adhd.py
    ```
 
 ## 📝 라이선스
