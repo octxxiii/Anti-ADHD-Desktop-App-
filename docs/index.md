@@ -1,6 +1,6 @@
 # Anti-ADHD
 
-아이젠하워 매트릭스로 ADHD를 이기는 할 일 관리 프로그램
+> 아이젠하워 매트릭스로 ADHD를 이기는 할 일 관리 프로그램
 
 [📖 문서](https://octxxiii.github.io/Anti-ADHD) • [🚀 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest) • [🐛 이슈 제보](https://github.com/octxxiii/Anti-ADHD/issues)
 
