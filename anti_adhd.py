@@ -11,7 +11,7 @@ class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
         self.root.title("Anti-ADHD")
-        self.root.geometry("800x600")
+        self.root.geometry("800x510")  # 전체 높이를 510으로 조정
         
         # 아이콘 생성 및 설정
         try:
@@ -106,12 +106,12 @@ class QuadrantChecklist:
         # 각 카테고리별 프레임 생성
         for i in range(4):
             frame = ttk.LabelFrame(root, text=categories[i])
-            frame.grid(row=i//2, column=i%2, padx=10, pady=10, sticky="nsew")
+            frame.grid(row=i//2, column=i%2, padx=10, pady=(5, 5), sticky="nsew")  # row 위치를 0부터 시작하도록 변경
             self.frames.append(frame)
             
             # 체크리스트 리스트박스
             listbox_frame = ttk.Frame(frame)
-            listbox_frame.pack(padx=5, pady=5, fill="both", expand=True)
+            listbox_frame.pack(padx=0, pady=10, fill="both", expand=True)  # 모든 여백 제거
             
             listbox = tk.Listbox(listbox_frame, selectmode="single")
             scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=listbox.yview)
@@ -151,41 +151,41 @@ class QuadrantChecklist:
         
         # 설정 버튼 프레임
         settings_frame = ttk.Frame(root)
-        settings_frame.grid(row=2, column=0, columnspan=2, pady=5, sticky="e")  # pady 줄임
+        settings_frame.grid(row=0, column=1, sticky="ne", pady=0, padx=(0, 5))  # 상단 여백을 0으로 설정
         
         # 모든 버튼을 오른쪽에 배치
         right_buttons = ttk.Frame(settings_frame)
-        right_buttons.pack(side="right", padx=5)  # padx 줄임
+        right_buttons.pack(side="right", padx=2, pady=0)  # 상하 여백 제거
         
         # 스타일 설정
         style = ttk.Style()
-        style.configure('Icon.TButton', padding=3)  # 패딩 줄임
+        style.configure('Icon.TButton', padding=1)  # padding 값 감소
         
         # 불투명도 조절
         opacity_frame = ttk.Frame(right_buttons)
-        opacity_frame.pack(side="left", padx=2)  # 간격 줄임
+        opacity_frame.pack(side="left", padx=1)  # padx 값 감소
         
-        opacity_icon = "🔍"  # 돋보기 아이콘
-        ttk.Label(opacity_frame, text=opacity_icon, font=('Segoe UI Emoji', 9)).pack(side="left")
+        # opacity_icon = "🔍"
+        ttk.Label(opacity_frame, text="", font=('Segoe UI Emoji', 9)).pack(side="left")
         self.opacity_scale = ttk.Scale(opacity_frame, from_=0.1, to=1.0, 
                                      value=self.opacity, orient="horizontal",
-                                     length=60,  # 슬라이더 길이 줄임
+                                     length=60,
                                      command=self.update_opacity)
-        self.opacity_scale.pack(side="left", padx=2)
+        self.opacity_scale.pack(side="left", padx=1)  # padx 값 감소
         
         # 고정 버튼 (핀 아이콘)
-        pin_icon = "📌"  # 핀 아이콘
+        pin_icon = "📍"
         self.pin_button = ttk.Button(right_buttons, text=pin_icon, width=3,
                                    style='Icon.TButton',
                                    command=self.toggle_pin)
-        self.pin_button.pack(side="left", padx=2)
+        self.pin_button.pack(side="left", padx=1)  # padx 값 감소
         
         # 설정 버튼 (기어 아이콘)
-        settings_icon = "⚙️"  # 기어 아이콘
+        settings_icon = "⚙️"
         settings_button = ttk.Button(right_buttons, text=settings_icon, width=3,
                                    style='Icon.TButton',
                                    command=self.show_settings)
-        settings_button.pack(side="left", padx=2)
+        settings_button.pack(side="left", padx=1)  # padx 값 감소
         
         # 초기 데이터 로드
         self.load_data()
@@ -212,9 +212,25 @@ class QuadrantChecklist:
     def show_settings(self):
         settings_window = tk.Toplevel(self.root)
         settings_window.title("설정")
-        settings_window.geometry("400x500")
         settings_window.transient(self.root)
         settings_window.grab_set()
+        
+        # 설정 창 크기 설정
+        window_width = 350
+        window_height = 400
+        
+        # 메인 창의 중앙 위치 계산
+        main_x = self.root.winfo_x()
+        main_y = self.root.winfo_y()
+        main_width = self.root.winfo_width()
+        main_height = self.root.winfo_height()
+        
+        # 설정 창 위치 계산 (메인 창 중앙)
+        x = main_x + (main_width - window_width) // 2
+        y = main_y + (main_height - window_height) // 2
+        
+        # 설정 창 크기와 위치 설정
+        settings_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
         # 설정 창에 아이콘 설정
         try:
@@ -246,7 +262,7 @@ class QuadrantChecklist:
         
         # 노트북(탭) 생성
         notebook = ttk.Notebook(settings_window)
-        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        notebook.pack(fill="both", expand=True, padx=5, pady=5)  # 여백 축소
         
         # 데이터 관리 탭
         data_frame = ttk.Frame(notebook)
@@ -254,27 +270,27 @@ class QuadrantChecklist:
         
         # 자동 저장 설정
         auto_save_frame = ttk.LabelFrame(data_frame, text="자동 저장")
-        auto_save_frame.pack(fill="x", padx=5, pady=5)
+        auto_save_frame.pack(fill="x", padx=3, pady=3)  # 여백 축소
         
         auto_save_var = tk.BooleanVar(value=self.auto_save_enabled)
         auto_save_check = ttk.Checkbutton(auto_save_frame, text="자동 저장 사용", 
                                         variable=auto_save_var,
                                         command=lambda: self.toggle_auto_save(auto_save_var.get()))
-        auto_save_check.pack(side="left", padx=5, pady=5)
+        auto_save_check.pack(side="left", padx=3, pady=3)  # 여백 축소
         
         # 수동 저장/불러오기 버튼
         manual_save_frame = ttk.LabelFrame(data_frame, text="데이터 관리")
-        manual_save_frame.pack(fill="x", padx=5, pady=5)
+        manual_save_frame.pack(fill="x", padx=3, pady=3)  # 여백 축소
         
         button_frame = ttk.Frame(manual_save_frame)
-        button_frame.pack(fill="x", padx=5, pady=5)
+        button_frame.pack(fill="x", padx=3, pady=3)  # 여백 축소
         
         ttk.Button(button_frame, text="저장", 
-                  command=lambda: self.save_data(show_message=True)).pack(side="left", padx=5)
+                  command=lambda: self.save_data(show_message=True)).pack(side="left", padx=3)  # 여백 축소
         ttk.Button(button_frame, text="불러오기", 
-                  command=self.load_data).pack(side="left", padx=5)
+                  command=self.load_data).pack(side="left", padx=3)  # 여백 축소
         ttk.Button(button_frame, text="프린트", 
-                  command=self.print_checklist).pack(side="left", padx=5)
+                  command=self.print_checklist).pack(side="left", padx=3)  # 여백 축소
         
         # 정보 탭
         info_frame = ttk.Frame(notebook)
@@ -291,8 +307,8 @@ class QuadrantChecklist:
 
 문의사항이 있으시면 이메일로 연락주세요."""
         
-        info_label = ttk.Label(info_frame, text=info_text, justify="left")
-        info_label.pack(padx=10, pady=10)
+        info_label = ttk.Label(info_frame, text=info_text, justify="left", anchor="w")  # 왼쪽 정렬
+        info_label.pack(padx=5, pady=5, fill="x")  # fill="x"로 전체 너비 사용
     
     def toggle_auto_save(self, enabled):
         self.auto_save_enabled = enabled
