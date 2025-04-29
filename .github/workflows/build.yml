@@ -23,12 +23,7 @@ jobs:
         
     - name: Build Windows executable
       run: |
-        pyinstaller --onefile --windowed --icon=app_icon.ico anti_adhd.py
-        
-    - name: Sign Windows executable
-      run: |
-        # 코드 서명을 위한 스크립트 (실제 서명은 별도의 인증서 필요)
-        # signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a dist/anti_adhd.exe
+        pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v3
@@ -53,12 +48,7 @@ jobs:
         
     - name: Build macOS app
       run: |
-        pyinstaller --onefile --windowed --icon=app_icon.icns anti_adhd.py
-        
-    - name: Sign macOS app
-      run: |
-        # 코드 서명을 위한 스크립트 (실제 서명은 별도의 인증서 필요)
-        # codesign --force --sign "Developer ID Application: Your Name" dist/anti_adhd
+        pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v3
@@ -83,7 +73,7 @@ jobs:
         
     - name: Build Linux executable
       run: |
-        pyinstaller --onefile --windowed anti_adhd.py
+        pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v3
@@ -95,6 +85,8 @@ jobs:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
+    
     - name: Download all artifacts
       uses: actions/download-artifact@v3
       with:
@@ -108,6 +100,6 @@ jobs:
           artifacts/anti-adhd-windows/anti_adhd.exe
           artifacts/anti-adhd-macos/anti_adhd
           artifacts/anti-adhd-linux/anti_adhd
-        body_path: RELEASE_NOTES.md
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
