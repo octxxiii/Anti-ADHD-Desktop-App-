@@ -6,12 +6,27 @@ from datetime import datetime
 import base64
 from PIL import Image, ImageDraw, ImageFont
 import io
+import requests
+import subprocess
+import sys
+import webbrowser
+
+# 버전 정보 상수
+VERSION = "1.0.1"
+GITHUB_REPO = "octxxiii/Anti-ADHD"
 
 class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
         self.root.title("Anti-ADHD")
         self.root.geometry("800x510")  # 전체 높이를 510으로 조정
+        
+        # 버전 정보
+        self.current_version = VERSION
+        self.github_repo = GITHUB_REPO
+        
+        # 시작 시 업데이트 확인
+        self.check_for_updates()
         
         # 아이콘 생성 및 설정
         try:
@@ -188,7 +203,7 @@ class QuadrantChecklist:
         settings_button.pack(side="left", padx=1)  # padx 값 감소
         
         # 초기 데이터 로드
-        self.load_data()
+        self.load_data(show_message=False)  # 프로그램 시작 시에는 알림창 표시하지 않음
         
         # 초기 불투명도 설정
         self.root.attributes('-alpha', self.opacity)
@@ -203,6 +218,75 @@ class QuadrantChecklist:
         
         # 프로그램 시작 시 첫 번째 입력 필드에 포커스 설정
         self.root.after(100, self.initial_focus)
+    
+    def check_for_updates(self):
+        try:
+            # GitHub API를 통해 최신 릴리즈 정보 가져오기
+            response = requests.get(f"https://api.github.com/repos/{self.github_repo}/releases/latest")
+            if response.status_code == 200:
+                latest_release = response.json()
+                latest_version = latest_release["tag_name"].lstrip('v')
+                
+                # 현재 버전과 최신 버전 비교
+                if self.compare_versions(latest_version, self.current_version) > 0:
+                    # 업데이트 확인 다이얼로그
+                    update_message = f"새로운 버전 {latest_version}이(가) 있습니다.\n현재 버전: {self.current_version}\n\n릴리즈 노트:\n{latest_release.get('body', '')}\n\n업데이트하시겠습니까?"
+                    if messagebox.askyesno("업데이트 확인", update_message):
+                        # 다운로드 URL 가져오기
+                        download_url = None
+                        for asset in latest_release.get('assets', []):
+                            if asset['name'].endswith('.exe'):  # Windows용 실행 파일
+                                download_url = asset['browser_download_url']
+                                break
+                        
+                        if download_url:
+                            # 다운로드 및 설치
+                            self.download_and_install_update(download_url)
+                        else:
+                            # 웹 브라우저에서 릴리즈 페이지 열기
+                            webbrowser.open(latest_release['html_url'])
+        except Exception as e:
+            print(f"업데이트 확인 중 오류 발생: {e}")
+
+    def compare_versions(self, v1, v2):
+        """버전 문자열 비교"""
+        v1_parts = list(map(int, v1.split('.')))
+        v2_parts = list(map(int, v2.split('.')))
+        
+        for v1_part, v2_part in zip(v1_parts, v2_parts):
+            if v1_part > v2_part:
+                return 1
+            elif v1_part < v2_part:
+                return -1
+        return 0
+
+    def download_and_install_update(self, download_url):
+        """업데이트 다운로드 및 설치"""
+        try:
+            # 임시 파일로 다운로드
+            response = requests.get(download_url, stream=True)
+            temp_path = os.path.join(os.environ['TEMP'], 'anti_adhd_update.exe')
+            
+            with open(temp_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            # 설치 스크립트 생성
+            install_script = f"""@echo off
+timeout /t 2 /nobreak
+start "" "{temp_path}"
+del "%~f0"
+"""
+            script_path = os.path.join(os.environ['TEMP'], 'install_update.bat')
+            with open(script_path, 'w') as f:
+                f.write(install_script)
+            
+            # 현재 프로그램 종료 및 설치 스크립트 실행
+            subprocess.Popen([script_path], shell=True)
+            self.root.quit()
+            
+        except Exception as e:
+            messagebox.showerror("업데이트 오류", f"업데이트 설치 중 오류가 발생했습니다: {e}")
     
     def schedule_auto_save(self):
         if self.auto_save_enabled:
@@ -288,7 +372,7 @@ class QuadrantChecklist:
         ttk.Button(button_frame, text="저장", 
                   command=lambda: self.save_data(show_message=True)).pack(side="left", padx=3)  # 여백 축소
         ttk.Button(button_frame, text="불러오기", 
-                  command=self.load_data).pack(side="left", padx=3)  # 여백 축소
+                  command=lambda: self.load_data(show_message=True)).pack(side="left", padx=3)  # 여백 축소
         ttk.Button(button_frame, text="프린트", 
                   command=self.print_checklist).pack(side="left", padx=3)  # 여백 축소
         
@@ -296,12 +380,26 @@ class QuadrantChecklist:
         info_frame = ttk.Frame(notebook)
         notebook.add(info_frame, text="정보")
         
-        info_text = """아이젠하워 매트릭스 프로그램
+        # 스크롤 가능한 프레임 생성
+        info_canvas = tk.Canvas(info_frame)
+        scrollbar = ttk.Scrollbar(info_frame, orient="vertical", command=info_canvas.yview)
+        scrollable_frame = ttk.Frame(info_canvas)
+        
+        # 스크롤바 설정
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: info_canvas.configure(scrollregion=info_canvas.bbox("all"))
+        )
+        
+        # 캔버스에 프레임 추가
+        info_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        info_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 정보 내용
+        info_text = f"""아이젠하워 매트릭스 프로그램
 
-버전: 1.0
-개발자: MinJun Kim
-이메일: kdyw123@gmail.com
-GitHub: https://github.com/octxxiii/Anti-ADHD
+버전: {VERSION}
+개발자: octxxiii
 
 이 프로그램은 아이젠하워 매트릭스를 기반으로 한 
 할 일 관리 도구입니다.
@@ -314,15 +412,51 @@ GitHub: https://github.com/octxxiii/Anti-ADHD
 • 체크리스트 프린트
 
 라이선스: MIT License
-Copyright (c) 2024 MinJun Kim
+Copyright (c) 2024 octxxiii
 
 이 소프트웨어와 관련 문서 파일의 사용은 MIT 라이선스에 
 따라 누구나 무료로 사용, 복사, 수정할 수 있습니다.
 
 문의사항이 있으시면 이메일로 연락주세요."""
         
-        info_label = ttk.Label(info_frame, text=info_text, justify="left", anchor="w")  # 왼쪽 정렬
-        info_label.pack(padx=5, pady=5, fill="x")  # fill="x"로 전체 너비 사용
+        info_label = ttk.Label(scrollable_frame, text=info_text, justify="left", anchor="w")
+        info_label.pack(padx=5, pady=5, fill="x")
+        
+        # 이메일과 GitHub 링크 클릭 이벤트 처리
+        def open_email():
+            import webbrowser
+            webbrowser.open("mailto:kdyw123@gmail.com")
+        
+        def open_github():
+            import webbrowser
+            webbrowser.open("https://github.com/octxxiii/Anti-ADHD")
+        
+        # 이메일과 GitHub 링크 생성
+        email_link = ttk.Label(scrollable_frame, text="이메일: kdyw123@gmail.com", 
+                             foreground="blue", cursor="hand2")
+        email_link.pack(padx=5, pady=2, anchor="w")
+        email_link.bind("<Button-1>", lambda e: open_email())
+        
+        github_link = ttk.Label(scrollable_frame, text="GitHub: https://github.com/octxxiii/Anti-ADHD", 
+                              foreground="blue", cursor="hand2")
+        github_link.pack(padx=5, pady=2, anchor="w")
+        github_link.bind("<Button-1>", lambda e: open_github())
+        
+        # 스크롤바와 캔버스 배치
+        scrollbar.pack(side="right", fill="y")
+        info_canvas.pack(side="left", fill="both", expand=True)
+        
+        # 마우스 휠 이벤트 바인딩
+        def _on_mousewheel(event):
+            info_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        info_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        # 캔버스 크기가 변경될 때 내부 프레임 너비 조정
+        def _on_canvas_configure(event):
+            info_canvas.itemconfig("window", width=event.width)
+        
+        info_canvas.bind("<Configure>", _on_canvas_configure)
     
     def toggle_auto_save(self, enabled):
         self.auto_save_enabled = enabled
@@ -601,7 +735,7 @@ Copyright (c) 2024 MinJun Kim
             if show_message:
                 messagebox.showerror("저장 실패", f"데이터 저장 중 오류가 발생했습니다:\n{str(e)}")
     
-    def load_data(self):
+    def load_data(self, show_message=True):
         if os.path.exists(self.data_file):
             try:
                 with open(self.data_file, 'r', encoding='utf-8') as f:
@@ -623,13 +757,14 @@ Copyright (c) 2024 MinJun Kim
                             last_idx = self.lists[i].size() - 1
                             self.update_item_display(i, last_idx, clean_item)
                 
-                if 'last_saved' in data:
+                if 'last_saved' in data and show_message:
                     messagebox.showinfo("불러오기 완료", 
-                                      f"마지막 저장 시간: {data['last_saved']}\n데이터가 성공적으로 불러와졌습니다.")
+                                      f"마지막 저장 시간: {data['last_saved']}\n데이터 로딩 성공.")
             except Exception as e:
                 messagebox.showerror("불러오기 실패", f"데이터 불러오기 중 오류가 발생했습니다:\n{str(e)}")
         else:
-            messagebox.showinfo("새 파일", "저장된 데이터가 없습니다. 새로운 체크리스트를 시작합니다.")
+            if show_message:
+                messagebox.showinfo("새 파일", "저장된 데이터가 없습니다. 새로운 체크리스트를 시작합니다.")
     
     def print_checklist(self):
         """체크리스트 프린트"""
@@ -742,7 +877,6 @@ Copyright (c) 2024 MinJun Kim
                 f.write(html_content)
             
             # 기본 브라우저로 HTML 파일 열기
-            import webbrowser
             webbrowser.open(temp_file)
             
             # 안내 메시지 표시
