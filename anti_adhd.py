@@ -10,7 +10,7 @@ import io
 class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
-        self.root.title("ANTI ADHD")
+        self.root.title("Anti-ADHD")
         self.root.geometry("800x600")
         
         # 아이콘 생성 및 설정
@@ -313,6 +313,9 @@ class QuadrantChecklist:
                     del self.memos[self.current_quadrant][item]
                 listbox.delete(selection[0])
                 listbox.selection_clear(0, tk.END)
+                # 삭제 후 자동 저장
+                if self.auto_save_enabled:
+                    self.save_data(show_message=False)
     
     def update_opacity(self, value):
         self.opacity = float(value)
@@ -698,4 +701,12 @@ class QuadrantChecklist:
 if __name__ == "__main__":
     root = tk.Tk()
     app = QuadrantChecklist(root)
+    
+    # 프로그램 종료 시 자동 저장
+    def on_closing():
+        if app.auto_save_enabled:
+            app.save_data(show_message=False)
+        root.destroy()
+    
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop() 
