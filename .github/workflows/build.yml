@@ -21,19 +21,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
+    - name: Create icon
+      run: |
+        python scripts/create_icon.py
+        
     - name: Build Windows executable
       run: |
-        pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
+        pyinstaller --onefile --windowed --icon=app_icon.ico --name=anti_adhd anti_adhd.py
         
     - name: List dist directory
       run: dir dist
       
-    - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: anti-adhd-windows
-        path: dist/anti_adhd.exe
-        if-no-files-found: error
+        files: dist/anti_adhd.exe
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
     runs-on: macos-latest
