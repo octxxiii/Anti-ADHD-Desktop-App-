@@ -26,6 +26,15 @@ LIGHT_THEME = {
     'frame_bg': '#f0f0f0'
 }
 
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 class QuadrantChecklist:
     def __init__(self, root):
         self.root = root
@@ -33,8 +42,12 @@ class QuadrantChecklist:
         self.root.geometry("800x510")  # 전체 높이를 510으로 조정
         
         # 아이콘 설정
-        if os.path.exists('icon.ico'):
-            self.root.iconbitmap('icon.ico')
+        icon_path = resource_path('icon.ico')
+        if os.path.exists(icon_path):
+            try:
+                self.root.iconbitmap(icon_path)
+            except tk.TclError:
+                print(f"아이콘 로드 실패: {icon_path}")
         
         # 버전 정보
         self.current_version = VERSION
@@ -198,6 +211,11 @@ class QuadrantChecklist:
             return
         
         try:
+            # 상태 레이블 업데이트
+            if hasattr(self, 'update_status_label'):
+                self.update_status_label.config(text="업데이트 확인 중...")
+                self.update_status_label.update()
+            
             # GitHub API를 통해 최신 릴리즈 정보 가져오기
             response = requests.get(f"https://api.github.com/repos/{self.github_repo}/releases/latest")
             if response.status_code == 200:
@@ -206,12 +224,26 @@ class QuadrantChecklist:
                 
                 # 현재 버전과 최신 버전 비교
                 if self.compare_versions(latest_version, self.current_version) > 0:
+                    # 상태 레이블 업데이트
+                    if hasattr(self, 'update_status_label'):
+                        self.update_status_label.config(text=f"새 버전 {latest_version} 사용 가능")
+                        self.update_status_label.update()
+                    
                     # 업데이트 확인 다이얼로그
                     update_message = f"새로운 버전 {latest_version}이(가) 있습니다.\n현재 버전: {self.current_version}\n\n릴리즈 노트:\n{latest_release.get('body', '')}\n\n업데이트하시겠습니까?"
                     if messagebox.askyesno("업데이트 확인", update_message):
                         webbrowser.open(latest_release["html_url"])
+                else:
+                    # 상태 레이블 업데이트
+                    if hasattr(self, 'update_status_label'):
+                        self.update_status_label.config(text="최신 버전입니다")
+                        self.update_status_label.update()
         except Exception as e:
             print(f"업데이트 확인 중 오류 발생: {e}")
+            # 상태 레이블 업데이트
+            if hasattr(self, 'update_status_label'):
+                self.update_status_label.config(text="업데이트 확인 실패")
+                self.update_status_label.update()
 
     def compare_versions(self, v1, v2):
         """버전 문자열 비교"""
@@ -265,8 +297,12 @@ del "%~f0"
         settings_window.resizable(False, False)
         
         # 설정 창 아이콘 설정
-        if os.path.exists('icon.ico'):
-            settings_window.iconbitmap('icon.ico')
+        icon_path = resource_path('icon.ico')
+        if os.path.exists(icon_path):
+            try:
+                settings_window.iconbitmap(icon_path)
+            except tk.TclError:
+                print(f"설정 창 아이콘 로드 실패: {icon_path}")
         
         # 설정 창이 부모 창의 중앙에 표시되도록 위치 조정
         settings_window.transient(self.root)
@@ -301,6 +337,16 @@ del "%~f0"
         ttk.Checkbutton(update_frame, text="자동 업데이트 확인", 
                         variable=auto_update_var,
                         command=lambda: self.toggle_auto_update(auto_update_var.get())).pack(anchor="w")
+        
+        # 수동 업데이트 확인 버튼
+        update_button_frame = ttk.Frame(update_frame)
+        update_button_frame.pack(fill="x", pady=(5, 0))
+        
+        self.update_status_label = ttk.Label(update_button_frame, text="")
+        self.update_status_label.pack(side="left", padx=(0, 10))
+        
+        ttk.Button(update_button_frame, text="지금 확인", 
+                  command=self.check_for_updates).pack(side="right")
         
         # 수동 저장/불러오기 버튼
         manual_save_frame = ttk.LabelFrame(general_frame, text="데이터 관리")
@@ -349,15 +395,6 @@ del "%~f0"
         github_link = ttk.Label(github_frame, text="octxxiii/Anti-ADHD", style="Info.TLabel", foreground="blue", cursor="hand2")
         github_link.pack(side="left")
         github_link.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/octxxiii/Anti-ADHD"))
-        
-        # 문서 링크
-        docs_frame = ttk.Frame(program_info_frame)
-        docs_frame.pack(pady=5)
-        docs_label = ttk.Label(docs_frame, text="문서: ", style="Info.TLabel")
-        docs_label.pack(side="left")
-        docs_link = ttk.Label(docs_frame, text="사용자 가이드", style="Info.TLabel", foreground="blue", cursor="hand2")
-        docs_link.pack(side="left")
-        docs_link.bind("<Button-1>", lambda e: webbrowser.open("https://octxxiii.github.io/Anti-ADHD/"))
         
         # 라이선스 정보
         license_frame = ttk.LabelFrame(info_frame, text="라이선스", padding=10)
