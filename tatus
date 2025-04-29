@@ -1,0 +1,78 @@
+[1mdiff --git a/.github/workflows/pages.yml b/.github/workflows/pages.yml[m
+[1mindex 95e922c..bba0a95 100644[m
+[1m--- a/.github/workflows/pages.yml[m
+[1m+++ b/.github/workflows/pages.yml[m
+[36m@@ -14,22 +14,18 @@[m [mpermissions:[m
+   pages: write[m
+   id-token: write[m
+ [m
+[32m+[m[32mconcurrency:[m
+[32m+[m[32m  group: "pages"[m
+[32m+[m[32m  cancel-in-progress: false[m
+[32m+[m
+ jobs:[m
+   build:[m
+     runs-on: ubuntu-latest[m
+     steps:[m
+[31m-      - uses: actions/checkout@v3[m
+[32m+[m[32m      - uses: actions/checkout@v4[m
+       [m
+[31m-      - name: Setup Pages[m
+[31m-        uses: actions/configure-pages@v3[m
+[31m-        [m
+[31m-      - name: Create docs directory[m
+[31m-        run: |[m
+[31m-          mkdir -p docs/images[m
+[31m-          cp README.md docs/index.md[m
+[31m-          [m
+       - name: Setup Python[m
+[31m-        uses: actions/setup-python@v4[m
+[32m+[m[32m        uses: actions/setup-python@v5[m
+         with:[m
+           python-version: '3.11'[m
+           [m
+[36m@@ -92,11 +88,14 @@[m [mjobs:[m
+                 emoji_generator: !!python/name:materialx.emoji.to_svg[m
+           EOF[m
+           [m
+[32m+[m[32m      - name: Setup Pages[m
+[32m+[m[32m        uses: actions/configure-pages@v4[m
+[32m+[m[41m        [m
+       - name: Build with MkDocs[m
+         run: mkdocs build[m
+         [m
+       - name: Upload artifact[m
+[31m-        uses: actions/upload-pages-artifact@v2[m
+[32m+[m[32m        uses: actions/upload-pages-artifact@v3[m
+         with:[m
+           path: ./site[m
+ [m
+[36m@@ -109,4 +108,4 @@[m [mjobs:[m
+     steps:[m
+       - name: Deploy to GitHub Pages[m
+         id: deployment[m
+[31m-        uses: actions/deploy-pages@v2 [m
+\ No newline at end of file[m
+[32m+[m[32m        uses: actions/deploy-pages@v4[m[41m [m
+\ No newline at end of file[m
+[1mdiff --git a/docs/index.md b/docs/index.md[m
+[1mindex 1e06e91..0af8776 100644[m
+[1m--- a/docs/index.md[m
+[1m+++ b/docs/index.md[m
+[36m@@ -29,14 +29,15 @@[m [mADHD가 있는 사용자들을 위해 특별히 설계되었으며, 집중력 [m
+   - 드래그 앤 드롭으로 쉬운 우선순위 조정[m
+   [m
+ - 🎨 **현대적인 UI/UX**[m
+[31m-  - 다크/라이트 모드 지원[m
+   - 투명도 조절 기능[m
+   - 화면 상단 고정 옵션[m
+[32m+[m[32m  - 깔끔한 미니멀 디자인[m
+   [m
+ - 💾 **스마트 기능**[m
+   - 실시간 자동 저장[m
+   - 자동 업데이트 확인[m
+   - 클라우드 백업 (예정)[m
+[32m+[m[32m  - 다크 모드 (예정)[m
+ [m
+ ## 🚀 시작하기[m
+ [m

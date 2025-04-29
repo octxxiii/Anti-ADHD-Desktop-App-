@@ -14,22 +14,18 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-        
-      - name: Create docs directory
-        run: |
-          mkdir -p docs/images
-          cp README.md docs/index.md
-          
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           
@@ -38,65 +34,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install mkdocs-material
           
-      - name: Setup mkdocs
+      - name: Create docs directory
         run: |
-          cat > mkdocs.yml << EOF
-          site_name: Anti-ADHD
-          site_description: 아이젠하워 매트릭스 기반 할 일 관리 프로그램
-          theme:
-            name: material
-            language: ko
-            features:
-              - navigation.instant
-              - navigation.tracking
-              - navigation.tabs
-              - navigation.sections
-              - navigation.expand
-              - navigation.top
-              - toc.integrate
-              - search.suggest
-              - search.highlight
-            palette:
-              - scheme: default
-                primary: blue
-                accent: light blue
-                toggle:
-                  icon: material/brightness-7
-                  name: Switch to dark mode
-              - scheme: slate
-                primary: blue
-                accent: light blue
-                toggle:
-                  icon: material/brightness-4
-                  name: Switch to light mode
-            icon:
-              repo: fontawesome/brands/github
+          mkdir -p docs/images
+          cp README.md docs/index.md
           
-          repo_name: octxxiii/Anti-ADHD
-          repo_url: https://github.com/octxxiii/Anti-ADHD
-          
-          nav:
-            - 홈: index.md
-            - 사용 방법: user-guide.md
-            - 자주 묻는 질문: faq.md
-            - 문제 해결: troubleshooting.md
-          
-          markdown_extensions:
-            - attr_list
-            - md_in_html
-            - admonition
-            - pymdownx.details
-            - pymdownx.superfences
-            - pymdownx.emoji:
-                emoji_index: !!python/name:materialx.emoji.twemoji
-                emoji_generator: !!python/name:materialx.emoji.to_svg
-          EOF
-          
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
       - name: Build with MkDocs
         run: mkdocs build
         
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
 
@@ -109,4 +59,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2 
+        uses: actions/deploy-pages@v4 
