@@ -32,9 +32,16 @@ class QuadrantChecklist:
         self.root.title("Anti-ADHD")
         self.root.geometry("800x510")  # 전체 높이를 510으로 조정
         
+        # 아이콘 설정
+        if os.path.exists('icon.ico'):
+            self.root.iconbitmap('icon.ico')
+        
         # 버전 정보
         self.current_version = VERSION
         self.github_repo = GITHUB_REPO
+        
+        # 자동 업데이트 설정
+        self.auto_update_enabled = True
         
         # 테마 설정
         self.current_theme = LIGHT_THEME
@@ -78,9 +85,6 @@ class QuadrantChecklist:
         self.context_menu.add_separator()
         self.context_menu.add_command(label="수정", command=self.edit_item)
         self.context_menu.add_command(label="삭제", command=self.delete_selected_item)
-        
-        # 자동 업데이트 설정
-        self.auto_update_enabled = True
         
         # 각 카테고리별 프레임 생성
         for i in range(4):
@@ -260,9 +264,17 @@ del "%~f0"
         settings_window.geometry("400x500")
         settings_window.resizable(False, False)
         
+        # 설정 창 아이콘 설정
+        if os.path.exists('icon.ico'):
+            settings_window.iconbitmap('icon.ico')
+        
         # 설정 창이 부모 창의 중앙에 표시되도록 위치 조정
         settings_window.transient(self.root)
         settings_window.grab_set()
+        
+        # 항상 최상위에 표시되도록 설정
+        settings_window.attributes('-topmost', True)
+        settings_window.lift()
         
         # 노트북 생성
         notebook = ttk.Notebook(settings_window)
@@ -308,83 +320,101 @@ del "%~f0"
         info_frame = ttk.Frame(notebook)
         notebook.add(info_frame, text="정보")
         
-        # 스크롤 가능한 프레임 생성
-        info_canvas = tk.Canvas(info_frame)
-        scrollbar = ttk.Scrollbar(info_frame, orient="vertical", command=info_canvas.yview)
-        scrollable_frame = ttk.Frame(info_canvas)
+        # 정보 탭 스타일 설정
+        style = ttk.Style()
+        style.configure("Info.TLabel", font=("맑은 고딕", 10))
+        style.configure("Info.TButton", font=("맑은 고딕", 9))
+        
+        # 프로그램 정보 프레임
+        program_info_frame = ttk.LabelFrame(info_frame, text="프로그램 정보", padding=10)
+        program_info_frame.pack(fill="x", padx=10, pady=5)
+        
+        # 프로그램 이름
+        program_name = ttk.Label(program_info_frame, text="Anti-ADHD", font=("맑은 고딕", 14, "bold"))
+        program_name.pack(pady=(0, 5))
+        
+        # 버전 정보
+        version_label = ttk.Label(program_info_frame, text=f"버전: {self.current_version}", style="Info.TLabel")
+        version_label.pack(pady=2)
+        
+        # 개발자 정보
+        developer_label = ttk.Label(program_info_frame, text="개발자: octxxiii", style="Info.TLabel")
+        developer_label.pack(pady=2)
+        
+        # GitHub 링크
+        github_frame = ttk.Frame(program_info_frame)
+        github_frame.pack(pady=5)
+        github_label = ttk.Label(github_frame, text="GitHub: ", style="Info.TLabel")
+        github_label.pack(side="left")
+        github_link = ttk.Label(github_frame, text="octxxiii/Anti-ADHD", style="Info.TLabel", foreground="blue", cursor="hand2")
+        github_link.pack(side="left")
+        github_link.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/octxxiii/Anti-ADHD"))
+        
+        # 라이선스 정보
+        license_frame = ttk.LabelFrame(info_frame, text="라이선스", padding=10)
+        license_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        # 스크롤바와 캔버스 생성
+        license_canvas = tk.Canvas(license_frame)
+        license_scrollbar = ttk.Scrollbar(license_frame, orient="vertical", command=license_canvas.yview)
+        scrollable_frame = ttk.Frame(license_canvas)
         
         # 스크롤바 설정
         scrollable_frame.bind(
             "<Configure>",
-            lambda e: info_canvas.configure(scrollregion=info_canvas.bbox("all"))
+            lambda e: license_canvas.configure(scrollregion=license_canvas.bbox("all"))
         )
         
         # 캔버스에 프레임 추가
-        info_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        info_canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # 정보 내용
-        info_text = f"""아이젠하워 매트릭스 프로그램
-
-버전: {VERSION}
-개발자: octxxiii
-
-이 프로그램은 아이젠하워 매트릭스를 기반으로 한 
-할 일 관리 도구입니다.
-
-주요 기능:
-• 4분면 매트릭스 기반 할 일 관리
-• 항목별 상세 메모
-• 자동/수동 데이터 저장
-• 창 고정 및 투명도 조절
-• 체크리스트 프린트
-
-라이선스: MIT License
-Copyright (c) 2024 octxxiii
-
-이 소프트웨어와 관련 문서 파일의 사용은 MIT 라이선스에 
-따라 누구나 무료로 사용, 복사, 수정할 수 있습니다.
-
-문의사항이 있으시면 이메일로 연락주세요."""
-        
-        info_label = ttk.Label(scrollable_frame, text=info_text, justify="left", anchor="w")
-        info_label.pack(padx=5, pady=5, fill="x")
-        
-        # 이메일과 GitHub 링크 클릭 이벤트 처리
-        def open_email():
-            import webbrowser
-            webbrowser.open("mailto:kdyw123@gmail.com")
-        
-        def open_github():
-            import webbrowser
-            webbrowser.open("https://github.com/octxxiii/Anti-ADHD")
-        
-        # 이메일과 GitHub 링크 생성
-        email_link = ttk.Label(scrollable_frame, text="이메일: kdyw123@gmail.com", 
-                             foreground="blue", cursor="hand2")
-        email_link.pack(padx=5, pady=2, anchor="w")
-        email_link.bind("<Button-1>", lambda e: open_email())
-        
-        github_link = ttk.Label(scrollable_frame, text="GitHub: https://github.com/octxxiii/Anti-ADHD", 
-                              foreground="blue", cursor="hand2")
-        github_link.pack(padx=5, pady=2, anchor="w")
-        github_link.bind("<Button-1>", lambda e: open_github())
+        license_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        license_canvas.configure(yscrollcommand=license_scrollbar.set)
         
         # 스크롤바와 캔버스 배치
-        scrollbar.pack(side="right", fill="y")
-        info_canvas.pack(side="left", fill="both", expand=True)
+        license_scrollbar.pack(side="right", fill="y")
+        license_canvas.pack(side="left", fill="both", expand=True)
         
         # 마우스 휠 이벤트 바인딩
         def _on_mousewheel(event):
-            info_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            license_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         
-        info_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        license_canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
         # 캔버스 크기가 변경될 때 내부 프레임 너비 조정
         def _on_canvas_configure(event):
-            info_canvas.itemconfig("window", width=event.width)
+            license_canvas.itemconfig("window", width=event.width)
         
-        info_canvas.bind("<Configure>", _on_canvas_configure)
+        license_canvas.bind("<Configure>", _on_canvas_configure)
+        
+        license_text = """이 프로그램은 MIT 라이선스 하에 배포됩니다.
+
+MIT License
+
+Copyright (c) 2024 octxxiii
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE."""
+        
+        license_label = ttk.Label(scrollable_frame, text=license_text, style="Info.TLabel", wraplength=350, justify="left")
+        license_label.pack(padx=5, pady=5, fill="x")
+        
+        # 닫기 버튼
+        close_button = ttk.Button(info_frame, text="닫기", command=settings_window.destroy, style="Info.TButton")
+        close_button.pack(pady=10)
     
     def toggle_auto_save(self, enabled):
         self.auto_save_enabled = enabled
