@@ -71,7 +71,6 @@ markdown_extensions:
 
 nav:
   - 홈: index.md
-  - 사용 방법: 
     - 시작하기: user-guide.md
     - 자주 묻는 질문: faq.md
-  - 문제 해결: troubleshooting.md 
+    - 문제 해결: troubleshooting.md 
