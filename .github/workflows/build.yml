@@ -25,11 +25,15 @@ jobs:
       run: |
         pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
+    - name: List dist directory
+      run: dir dist
+      
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v3
       with:
         name: anti-adhd-windows
         path: dist/anti_adhd.exe
+        if-no-files-found: error
 
   build-macos:
     runs-on: macos-latest
@@ -50,11 +54,15 @@ jobs:
       run: |
         pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
+    - name: List dist directory
+      run: ls -l dist
+        
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v3
       with:
         name: anti-adhd-macos
         path: dist/anti_adhd
+        if-no-files-found: error
 
   build-linux:
     runs-on: ubuntu-latest
@@ -75,15 +83,21 @@ jobs:
       run: |
         pyinstaller --onefile --windowed --name=anti_adhd anti_adhd.py
         
+    - name: List dist directory
+      run: ls -l dist
+        
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v3
       with:
         name: anti-adhd-linux
         path: dist/anti_adhd
+        if-no-files-found: error
 
   create-release:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v3
     
@@ -92,8 +106,10 @@ jobs:
       with:
         path: artifacts
         
+    - name: List downloaded artifacts
+      run: ls -R artifacts
+        
     - name: Create Release
-      id: create_release
       uses: softprops/action-gh-release@v1
       with:
         files: |
