@@ -582,7 +582,7 @@ SOFTWARE."""
                 # 항목 표시
                 item_frame = ttk.LabelFrame(memo_window, text="항목")
                 item_frame.pack(fill="x", padx=10, pady=5)
-                ttk.Label(item_frame, text=item[2:]).pack(padx=10, pady=5)
+                ttk.Label(item_frame, text=item[2:].replace(" *", "").strip()).pack(padx=10, pady=5)
                 
                 # 메모 입력/표시 영역
                 memo_frame = ttk.LabelFrame(memo_window, text="메모")
@@ -592,20 +592,27 @@ SOFTWARE."""
                 memo_text.pack(fill="both", expand=True, padx=5, pady=5)
                 
                 # 기존 메모 있으면 표시
-                if item in self.memos[self.current_quadrant]:
-                    memo_text.insert("1.0", self.memos[self.current_quadrant][item])
+                clean_item = item[2:].replace(" *", "").strip()
+                if clean_item in self.memos[self.current_quadrant]:
+                    memo_text.insert("1.0", self.memos[self.current_quadrant][clean_item])
                 
                 def save_memo():
                     memo_content = memo_text.get("1.0", "end-1c").strip()
+                    clean_item = item[2:].replace(" *", "").strip()
+                    
                     if memo_content:  # 메모 내용이 있는 경우
-                        self.memos[self.current_quadrant][item] = memo_content
-                        # 메모 있음을 표시
-                        self.update_item_display(self.current_quadrant, selection[0], item)
+                        self.memos[self.current_quadrant][clean_item] = memo_content
                     else:  # 메모 내용이 없는 경우
-                        if item in self.memos[self.current_quadrant]:
-                            del self.memos[self.current_quadrant][item]
-                            # 메모 표시 제거
-                            self.update_item_display(self.current_quadrant, selection[0], item)
+                        if clean_item in self.memos[self.current_quadrant]:
+                            del self.memos[self.current_quadrant][clean_item]
+                    
+                    # 항목 표시 업데이트
+                    self.update_item_display(self.current_quadrant, selection[0], item)
+                    
+                    # 자동 저장 실행
+                    if self.auto_save_enabled:
+                        self.save_data(show_message=False)
+                    
                     memo_window.destroy()
                 
                 button_frame = ttk.Frame(memo_window)
@@ -615,24 +622,19 @@ SOFTWARE."""
     
     def update_item_display(self, quadrant_idx, index, item):
         """항목 표시 업데이트 (메모 있음 표시)"""
-        # 기존 메모 데이터 보존을 위해 원본 아이템 키 저장
-        original_item = item
+        # 체크박스 상태 유지
+        prefix = item[:2]  # □ 또는 ✓
         
-        # 별표 제거한 상태의 아이템으로 메모 확인
-        clean_item = item.replace(" *", "")
-        has_memo = clean_item in self.memos[quadrant_idx] and self.memos[quadrant_idx][clean_item].strip()
+        # 실제 텍스트 내용 (별표 제거)
+        text = item[2:].replace(" *", "").strip()
         
-        prefix = item[:2]  # 체크박스 상태 (□ 또는 ✓) 유지
-        text = item[2:].replace(" *", "").strip()  # 실제 텍스트 내용 (별표 제거)
+        # 메모 존재 여부 확인
+        has_memo = text in self.memos[quadrant_idx] and self.memos[quadrant_idx][text].strip()
         
         # 메모가 있으면 * 표시 추가
         new_item = f"{prefix}{' *' if has_memo else ' '}{text}"
         
-        # 메모 데이터 키 업데이트
-        if has_memo and original_item in self.memos[quadrant_idx]:
-            memo_content = self.memos[quadrant_idx].pop(original_item)
-            self.memos[quadrant_idx][new_item] = memo_content
-        
+        # 항목 업데이트
         self.lists[quadrant_idx].delete(index)
         self.lists[quadrant_idx].insert(index, new_item)
         self.lists[quadrant_idx].select_set(index)
