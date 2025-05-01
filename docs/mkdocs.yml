@@ -18,6 +18,9 @@ theme:
     - toc.follow
     - search.suggest
     - search.highlight
+    - navigation.top
+    - navigation.tabs
+    - navigation.tabs.sticky
   palette:
     - scheme: default
       primary: indigo
@@ -36,6 +39,8 @@ theme:
     code: Noto Sans Mono
   icon:
     repo: fontawesome/brands/github
+  favicon: images/favicon.ico
+  logo: images/logo.png
 
 extra:
   social:
@@ -44,10 +49,20 @@ extra:
       name: GitHub
     - icon: fontawesome/solid/envelope
       link: mailto:kdyw123@gmail.com
+  version:
+    provider: mike
 
 plugins:
   - search:
       lang: ko
+      separator: '[\s\-\.]+'
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+  - git-revision-date-localized:
+      type: date
+      fallback_to_build_date: true
 
 markdown_extensions:
   - attr_list
@@ -67,6 +82,13 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
   - 홈: index.md
