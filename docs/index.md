@@ -56,11 +56,11 @@
 
 ## 👨‍💻 개발자 및 라이선스
 
-<div class="grid" markdown>
+<div class="grid" markdown style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
 
--   [:octicons-mark-github-16: GitHub](https://github.com/octxxiii){ .md-button .md-button--primary }
--   [:octicons-mail-16: 이메일](mailto:kdyw123@gmail.com){ .md-button .md-button--primary }
--   [:octicons-law-16: MIT License](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE){ .md-button .md-button--primary }
+-   [:octicons-mark-github-16: GitHub](https://github.com/octxxiii){ .md-button .md-button--small }
+-   [:octicons-mail-16: 이메일](mailto:kdyw123@gmail.com){ .md-button .md-button--small }
+-   [:octicons-law-16: MIT License](https://github.com/octxxiii/Anti-ADHD/blob/main/LICENSE){ .md-button .md-button--small }
 
 </div>
 
