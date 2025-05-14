@@ -1,0 +1,174 @@
+
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    @page { 
+                        size: A4; 
+                        margin: 1cm;
+                    }
+                    body { 
+                        font-family: 맑은 고딕;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .container { 
+                        display: flex; 
+                        flex-wrap: wrap;
+                        gap: 20px;
+                    }
+                    .quadrant { 
+                        width: calc(50% - 10px); 
+                        box-sizing: border-box;
+                        border: 1px solid #000;
+                        margin-bottom: 20px;
+                        page-break-inside: avoid;
+                    }
+                    .title { 
+                        font-size: 16px;
+                        font-weight: bold;
+                        margin: 0;
+                        padding: 10px;
+                        background-color: #f0f0f0;
+                        border-bottom: 2px solid #000;
+                    }
+                    .items {
+                        padding: 10px;
+                    }
+                    .item {
+                        display: flex;
+                        align-items: center;
+                        margin: 8px 0;
+                        padding: 5px 0;
+                        border-bottom: 1px solid #eee;
+                        min-height: 24px;
+                    }
+                    .checkbox {
+                        width: 12px;
+                        height: 12px;
+                        border: 1px solid #000;
+                        margin-right: 8px;
+                        display: inline-block;
+                        position: relative;
+                    }
+                    .checkbox.checked::after {
+                        content: '✓';
+                        position: absolute;
+                        top: -4px;
+                        left: 1px;
+                        font-size: 14px;
+                        color: #000;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+            
+                    <div class="quadrant">
+                        <div class="title">중요 & 긴급</div>
+                        <div class="items">
+                <div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+
+                        </div>
+                    </div>
+                    <div class="quadrant">
+                        <div class="title">중요</div>
+                        <div class="items">
+                <div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+
+                        </div>
+                    </div>
+                    <div class="quadrant">
+                        <div class="title">긴급</div>
+                        <div class="items">
+                <div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+
+                        </div>
+                    </div>
+                    <div class="quadrant">
+                        <div class="title">중요 X 긴급 X</div>
+                        <div class="items">
+                <div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+<div class="item"><span class="checkbox"></span></div>
+
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            
