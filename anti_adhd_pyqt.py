@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import (
     QMessageBox, QFileDialog, QListWidgetItem, QDialog, QLabel, QCheckBox, QSlider, QStyle, QSizePolicy,
     QTabWidget, QFormLayout, QToolButton, QFrame
 )
-from PyQt5.QtCore import Qt, QSettings, QUrl, QPoint, QSize
-from PyQt5.QtGui import QIcon, QDesktopServices, QPainter, QPen, QColor, QPixmap, QCursor
+from PyQt5.QtCore import Qt, QSettings, QUrl, QPoint, QSize, QTimer
+from PyQt5.QtGui import QIcon, QDesktopServices, QPainter, QPen, QColor, QPixmap, QCursor, QFont
 import sys
 import os
 import json
@@ -360,106 +360,170 @@ SOFTWARE.
         if self.main_window_ref and hasattr(self.main_window_ref, 'reload_data_and_ui'):
             self.main_window_ref.reload_data_and_ui()
 
-class QuadrantWidget(QGroupBox):
-    def __init__(self, title, main_window_ref):
-        super().__init__(title)
-        self.main_window = main_window_ref
-        self.list_widget = QListWidget()
-        self.input_field = QTextEdit()
-        self.input_field.setFixedHeight(24)
-        self.add_button = QPushButton("추가")
+class ProjectListWidget(QListWidget):
+    def __init__(self, main_window, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.main_window = main_window
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self.main_window.adjust_sidebar_width)
+
+class EisenhowerQuadrantWidget(QFrame):
+    def __init__(self, color, keyword, description, icon=None, main_window_ref=None):
+        super().__init__()
+        self.main_window = main_window_ref
+        self.color = color
+        self.keyword = keyword
+        self.description = description
+        self.icon = icon
+        self.setObjectName("eisenhowerQuadrant")
+        from PyQt5.QtGui import QColor
+        base = QColor(color)
+        light = base.lighter(170).name()
+        dark = base.darker(130).name()
+        border = base.darker(120).name()
+        self.setStyleSheet(f"""
+            QFrame#eisenhowerQuadrant {{
+                background: {color};
+                border-radius: 16px;
+                border: 2px solid {border};
+            }}
+        """)
+        self.setMinimumHeight(180)
+        self.setMinimumWidth(180)
+
+        # 내부 데이터: [{'title': str, 'details': str, 'checked': bool}]
+        self.items = []
+
+        # 타이틀/설명/아이콘 (최소화, 여백 축소)
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(2, 2, 2, 0)
+        title_layout.setSpacing(2)
+        if icon:
+            icon_label = QLabel()
+            icon_label.setPixmap(icon.pixmap(16, 16))
+            title_layout.addWidget(icon_label)
+        title_text = QLabel(f"<span style='font-size:10pt;font-weight:600;color:white;letter-spacing:0.5px;'>{keyword}</span>")
+        title_layout.addWidget(title_text)
+        title_layout.addStretch()
+
+        desc_label = QLabel(f"<span style='font-size:8pt;color:white;opacity:0.85;'>{description}</span>")
+        desc_label.setContentsMargins(2, 0, 2, 2)
+
+        # 체크리스트
+        self.list_widget = QListWidget()
+        self.list_widget.setStyleSheet(f"""
+            QListWidget {{
+                background: {light};
+                border-radius: 8px;
+                border: none;
+                margin: 2px 2px 0 2px;
+                padding: 2px;
+                font-size: 10pt;
+            }}
+            QListWidget::item:selected {{
+                background: {dark};
+                color: white;
+            }}
+        """)
+        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
+        self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
+
+        # 입력창/버튼
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("할 일 제목을 입력하세요...")
+        self.input_field.setStyleSheet(f"QLineEdit {{ background: {light}; border: 1.5px solid {border}; border-radius: 6px; padding: 2px; font-size: 10pt; }} QLineEdit:focus {{ border: 2px solid {dark}; background: #fff; }}")
+        self.add_button = QPushButton("추가")
+        self.add_button.setStyleSheet(f"QPushButton {{ background: {dark}; color: white; border-radius: 6px; padding: 2px 6px; font-weight: bold; font-size: 10pt; }} QPushButton:hover {{ background: {color}; color: #fff; }}")
         input_layout = QHBoxLayout()
-        input_layout.setSpacing(5)
+        input_layout.setContentsMargins(2, 2, 2, 4)
+        input_layout.setSpacing(2)
         input_layout.addWidget(self.input_field)
         input_layout.addWidget(self.add_button)
-        
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(10, 15, 10, 10)
-        main_layout.addWidget(self.list_widget)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        main_layout.addLayout(title_layout)
+        main_layout.addWidget(desc_label)
+        main_layout.addWidget(self.list_widget, stretch=1)
         main_layout.addLayout(input_layout)
         self.setLayout(main_layout)
 
         self.add_button.clicked.connect(self.add_task)
-
-    def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            if not (event.modifiers() & Qt.ShiftModifier): # Shift 키가 눌리지 않았을 때만
-                self.add_task()
-                event.accept() # 이벤트 처리됨, 기본 동작(줄바꿈) 방지
-                return
-        super().keyPressEvent(event) # 그 외의 경우는 기본 이벤트 처리
+        self.input_field.returnPressed.connect(self.add_task)
 
     def add_task(self):
-        task_text = self.input_field.toPlainText().strip()
-        if task_text and self.main_window.current_project_name:
-            project_data = self.main_window.projects_data.get(self.main_window.current_project_name)
-            if project_data:
-                quadrant_index = self.main_window.quadrant_widgets.index(self)
-                
-                if "tasks" not in project_data:
-                    project_data["tasks"] = [[], [], [], []]
+        title = self.input_field.text().strip()
+        if title:
+            item_data = {"title": title, "details": "", "checked": False}
+            self.items.append(item_data)
+            self._add_list_item(item_data)
+            self.input_field.clear()
 
-                if task_text not in project_data["tasks"][quadrant_index]:
-                     project_data["tasks"][quadrant_index].append(task_text)
-                
-                self.main_window.update_quadrant_display(self.main_window.current_project_name)
-                self.input_field.clear()
-                # 자동 저장 로직 적용
-                if self.main_window.auto_save_enabled:
-                    self.main_window.save_project_to_file(self.main_window.current_project_name)
+    def _add_list_item(self, item_data):
+        item = QListWidgetItem(item_data["title"])
+        item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
+        item.setCheckState(Qt.Checked if item_data["checked"] else Qt.Unchecked)
+        if item_data["details"]:
+            item.setToolTip(item_data["details"])
+        self.list_widget.addItem(item)
+
+    def on_item_double_clicked(self, item):
+        idx = self.list_widget.row(item)
+        if idx < 0 or idx >= len(self.items):
+            return
+        old_details = self.items[idx]["details"]
+        new_details, ok = QInputDialog.getMultiLineText(self, "세부 내용 입력", f"'{self.items[idx]['title']}'의 세부 내용:", old_details)
+        if ok:
+            self.items[idx]["details"] = new_details.strip()
+            item.setToolTip(new_details.strip())
+
+    def show_context_menu(self, position):
+        item = self.list_widget.itemAt(position)
+        if not item:
+            return
+        idx = self.list_widget.row(item)
+        menu = QMenu()
+        edit_title_action = menu.addAction("제목 수정")
+        edit_details_action = menu.addAction("세부 내용 편집")
+        delete_action = menu.addAction("삭제")
+        menu.addSeparator()
+        toggle_action = menu.addAction("완료 표시" if item.checkState() == Qt.Unchecked else "완료 해제")
+        action = menu.exec_(self.list_widget.mapToGlobal(position))
+        if not action:
+            return
+        if action == edit_title_action:
+            old_title = self.items[idx]["title"]
+            new_title, ok = QInputDialog.getText(self, "제목 수정", "새 제목:", text=old_title)
+            if ok and new_title.strip() and new_title.strip() != old_title:
+                self.items[idx]["title"] = new_title.strip()
+                item.setText(new_title.strip())
+        elif action == edit_details_action:
+            self.on_item_double_clicked(item)
+        elif action == delete_action:
+            self.items.pop(idx)
+            self.list_widget.takeItem(idx)
+        elif action == toggle_action:
+            checked = not self.items[idx]["checked"]
+            self.items[idx]["checked"] = checked
+            item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
     def clear_tasks(self):
+        self.items = []
         self.list_widget.clear()
 
     def load_tasks(self, tasks_list):
         self.clear_tasks()
-        for task_text in tasks_list:
-            item = QListWidgetItem(task_text)
-            self.list_widget.addItem(item)
-
-# --- 투명도 조절 팝업 위젯 --- #
-class OpacityPopup(QWidget):
-    def __init__(self, parent_window):
-        super().__init__(parent_window)
-        self.main_window = parent_window
-        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        self.setStyleSheet("""
-            QWidget {
-                background-color: rgba(240, 240, 240, 0.95); /* 반투명 배경 */
-                border: 1px solid #c0c0c0;
-                border-radius: 6px;
-            }
-        """)
-
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setMinimum(20)
-        self.slider.setMaximum(100)
-        self.slider.setValue(int(self.main_window.window_opacity * 100))
-        self.slider.valueChanged.connect(self.slider_value_changed)
-
-        self.value_label = QLabel(f"{self.slider.value()}%")
-        self.value_label.setAlignment(Qt.AlignCenter)
-
-        slider_layout = QHBoxLayout()
-        slider_layout.addWidget(QLabel("투명도:"))
-        slider_layout.addWidget(self.slider)
-        slider_layout.addWidget(self.value_label)
-        layout.addLayout(slider_layout)
-        self.setFixedSize(220, 60) # 팝업 크기 고정
-
-    def slider_value_changed(self, value):
-        self.value_label.setText(f"{value}%")
-        self.main_window.set_window_opacity(value / 100.0)
-
-    def show_at(self, pos):
-        self.move(pos)
-        self.show()
+        # tasks_list는 [{title, details, checked}] 형태로 기대
+        for item_data in tasks_list:
+            # 마이그레이션: 문자열만 있으면 title로 간주
+            if isinstance(item_data, str):
+                item_data = {"title": item_data, "details": "", "checked": False}
+            self.items.append(item_data)
+            self._add_list_item(item_data)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -468,27 +532,48 @@ class MainWindow(QMainWindow):
         self.data_dir = "anti_adhd_data"
         self.always_on_top = False
         self.window_opacity = 1.0
-        self.auto_save_enabled = True # 자동 저장 기본값, load_settings에서 덮어씀
+        self.auto_save_enabled = True
 
         self.init_ui()
         self.load_settings()
 
         self.projects_data = {}
         self.current_project_name = None
-        
         if not os.path.exists(self.data_dir):
             try:
                 os.makedirs(self.data_dir)
             except OSError as e:
-                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\\n{e}")
-        
+                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
         self.load_all_projects()
         self.select_initial_project()
+        self.force_adjust_sidebar_width()
+
+        self.project_list.model().rowsInserted.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
+        self.project_list.model().rowsRemoved.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
+        self.project_list.model().dataChanged.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
+
+    def force_adjust_sidebar_width(self):
+        self.adjust_sidebar_width()
+        QApplication.processEvents()
+        QTimer.singleShot(0, self.adjust_sidebar_width)
+        QTimer.singleShot(50, self.adjust_sidebar_width)
+        QTimer.singleShot(200, self.adjust_sidebar_width)
+        QTimer.singleShot(500, self.adjust_sidebar_width)
+
+    def adjust_sidebar_width(self):
+        min_width = 100
+        max_width = 300
+        QApplication.processEvents()
+        max_width_item = min_width
+        for i in range(self.project_list.count()):
+            rect = self.project_list.visualItemRect(self.project_list.item(i))
+            if rect.width() > max_width_item:
+                max_width_item = rect.width()
+        width = min(max(min_width, max_width_item + 32), max_width)
+        self.sidebar.setFixedWidth(width)
 
     def init_ui(self):
-        self.setWindowTitle("Anti-ADHD (PyQt)")
-
-        # --- 파일 메뉴 구성 --- #
+        self.setWindowTitle("Anti-ADHD (Eisenhower Matrix)")
         menubar = self.menuBar()
         file_menu = menubar.addMenu("파일")
 
@@ -521,99 +606,104 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         
-        # --- 툴바 구성 (기존 코드 유지) --- #
+        # --- 컴팩트한 툴바(메뉴바) 구성 --- #
         self.toolbar = self.addToolBar("메인 툴바")
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
-        self.toolbar.setIconSize(QSize(20, 20)) 
-        
-        # 사이드바 토글 액션 (기존 정의된 액션 사용, 아이콘/툴큐은 update_sidebar_toggle_icon에서 설정)
-        # toggle_sidebar_icon = self.style().standardIcon(QStyle.SP_ToolBarHorizontalExtensionButton) # 이전
-        # self.toggle_sidebar_action = QAction(toggle_sidebar_icon, "사이드바 토글", self) # 이전
-        self.toggle_sidebar_action = QAction(self) # 아이콘 등은 아래 update_sidebar_toggle_icon()에서 설정
+        self.toolbar.setIconSize(QSize(18, 18))
+        self.toolbar.setStyleSheet("QToolBar { spacing: 2px; margin: 0; padding: 0; min-height: 28px; background: #f5f6fa; border: none; } QToolButton { margin: 0 2px; padding: 2px; border-radius: 4px; background: transparent; } QToolButton:checked { background: #e3f0ff; } QToolButton:hover { background: #e8e8e8; }")
+
+        # 프로젝트 show/hide 버튼 (아이콘만)
+        self.toggle_sidebar_action = QAction(self)
+        self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+        self.toggle_sidebar_action.setToolTip("프로젝트 목록 보이기/숨기기")
         self.toggle_sidebar_action.triggered.connect(self.toggle_sidebar)
         self.toolbar.addAction(self.toggle_sidebar_action)
 
-        self.toolbar.addSeparator()
-
-        # 항상 위에 고정 액션
+        # 고정(항상 위) 버튼 (아이콘만)
         self.always_on_top_action = QAction(self)
         self.always_on_top_action.setCheckable(True)
-        self.update_always_on_top_icon() # 아이콘 및 초기 상태 설정
+        self.update_always_on_top_icon()
         self.always_on_top_action.triggered.connect(self.toggle_always_on_top)
         self.toolbar.addAction(self.always_on_top_action)
 
-        # 투명도 조절 액션 (팝업 방식)
-        # 임시 아이콘 생성 (물방울 모양 - QPainter 사용)
-        opacity_icon = QIcon(self.create_opacity_icon(Qt.black)) # 아이콘 색상
+        # 투명도 버튼 (아이콘만)
+        opacity_icon = QIcon(self.create_opacity_icon(Qt.black))
         self.opacity_action = QAction(opacity_icon, "투명도 조절", self)
         self.opacity_action.setToolTip("창 투명도 조절")
         self.opacity_action.triggered.connect(self.show_opacity_popup)
         self.toolbar.addAction(self.opacity_action)
-        self.opacity_popup = None # 팝업 인스턴스 저장용
+        self.opacity_popup = None
 
+        # spacer로 오른쪽 정렬
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.toolbar.addWidget(spacer)
 
-        # 설정 액션 아이콘 변경
-        settings_toolbar_icon = self.style().standardIcon(QStyle.SP_FileDialogDetailedView) 
+        # 설정 버튼 (아이콘만)
+        settings_toolbar_icon = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
         self.settings_toolbar_action = QAction(settings_toolbar_icon, "설정", self)
         self.settings_toolbar_action.setToolTip("애플리케이션 설정 열기")
         self.settings_toolbar_action.triggered.connect(self.open_settings_dialog)
         self.toolbar.addAction(self.settings_toolbar_action)
 
         # --- 나머지 UI 구성 (사이드바, 4분면 등) --- #
-        # self.sidebar = QListWidget() # 이전 QListWidget 사이드바
-        # self.sidebar.setFixedWidth(220) 
-        # self.sidebar.setContextMenuPolicy(Qt.CustomContextMenu)
-        # self.sidebar.customContextMenuRequested.connect(self.show_project_context_menu)
-        # self.sidebar.currentItemChanged.connect(self.on_project_selection_changed)
-
-        # 사이드바를 QFrame으로 변경하고 내부에 QListWidget(project_list) 배치
-        self.sidebar = QFrame() 
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName("sidebar")
         self.sidebar.setFrameShape(QFrame.StyledPanel)
-        self.sidebar.setFixedWidth(200) # 폭은 200으로 유지
-
         self.sidebar_layout = QVBoxLayout(self.sidebar)
-        self.project_list_label = QLabel("프로젝트 목록:") 
+        self.project_list_label = QLabel("프로젝트 목록:")
         self.sidebar_layout.addWidget(self.project_list_label)
-
-        self.project_list = QListWidget() # 실제 프로젝트 목록 위젯
+        self.project_list = ProjectListWidget(self)
         self.project_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.project_list.customContextMenuRequested.connect(self.show_project_context_menu)
         self.project_list.currentItemChanged.connect(self.on_project_selection_changed)
+        self.project_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.project_list.setWordWrap(False)
+        self.project_list.setUniformItemSizes(True)
         self.sidebar_layout.addWidget(self.project_list)
-        
-        # 사이드바 내부 프레임 여백: (left, top, right, bottom)
-        self.sidebar_layout.setContentsMargins(8, 8, 0, 8) # 우측 여백을 0으로 수정
-        self.sidebar_layout.setSpacing(5) # 사이드바 내부 라벨과 리스트 간 간격
+        self.sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        self.sidebar_layout.setSpacing(0)
+        self.sidebar.setContentsMargins(0, 0, 0, 0)
+        self.project_list.setContentsMargins(0, 0, 0, 0)
+        self.project_list_label.setContentsMargins(0, 0, 0, 0)
+        # [제프 딘] 사이드바 폭 완전 고정 (동적 조정 코드 제거)
+        self.sidebar.setFixedWidth(140)
 
-        grid_layout = QGridLayout()
-        grid_layout.setSpacing(10) # 4분면 사이의 간격
-        grid_layout.setContentsMargins(0,0,0,0) # 4분면 그룹 전체의 여백을 0으로 설정
-        categories = [
-            "긴급하고 중요한 일", "긴급하지 않지만 중요한 일",
-            "긴급하지만 중요하지 않은 일", "긴급하지도 중요하지도 않은 일"
+        # Eisenhower Matrix 색상/키워드/설명/아이콘 (한글화)
+        quadrant_info = [
+            ("#d32f2f", "중요·긴급", "즉시 처리", self.style().standardIcon(QStyle.SP_DialogApplyButton)),
+            ("#f57c00", "중요", "계획/우선순위", self.style().standardIcon(QStyle.SP_BrowserReload)),
+            ("#388e3c", "긴급", "위임/빠른 처리", self.style().standardIcon(QStyle.SP_ArrowRight)),
+            ("#757575", "중요 아님·긴급 아님", "삭제/미루기", self.style().standardIcon(QStyle.SP_TrashIcon)),
         ]
+        # 3x3 그리드로 확장하여 축 라벨이 사분면 바깥에 위치하도록
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(8)
+        grid_layout.setContentsMargins(16, 16, 16, 16)
         self.quadrant_widgets = []
-        for i, cat_name in enumerate(categories):
-            quad_widget = QuadrantWidget(cat_name, self)
-            grid_layout.addWidget(quad_widget, i // 2, i % 2)
+        for i, (color, keyword, desc, icon) in enumerate(quadrant_info):
+            quad_widget = EisenhowerQuadrantWidget(color, keyword, desc, icon, self)
+            row = 1 + (i // 2)
+            col = 1 + (i % 2)
+            grid_layout.addWidget(quad_widget, row, col)
             self.quadrant_widgets.append(quad_widget)
 
         main_content_widget = QWidget()
         main_content_widget.setLayout(grid_layout)
-
-        # --- QSplitter ---
+        main_content_widget.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(Qt.Horizontal)
-        self.splitter.addWidget(self.sidebar) # QFrame인 sidebar를 splitter에 추가
+        self.splitter.addWidget(self.sidebar)
         self.splitter.addWidget(main_content_widget)
-        self.splitter.setStretchFactor(1, 1) 
-        self.splitter.setHandleWidth(0) # 스플리터 핸들 너비 조정 (기본값보다 작게)
+        self.splitter.setStretchFactor(1, 1)
+        # QSplitter 핸들 완전 비활성화
+        self.splitter.setHandleWidth(0)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
+        self.splitter.setStyleSheet("QSplitter { border: none; margin: 0; padding: 0; }")
         self.setCentralWidget(self.splitter)
-
-        self.update_sidebar_toggle_icon() # init_ui 마지막에 호출하여 초기 아이콘 설정
+        self.update_sidebar_toggle_icon()
+        # 스타일시트는 기존과 동일하게 유지 또는 필요시 추가
 
     def create_opacity_icon(self, color):
         icon_size = self.toolbar.iconSize() # 툴바 아이콘 크기 참조
@@ -673,80 +763,65 @@ class MainWindow(QMainWindow):
         if ok and text.strip():
             project_name = text.strip()
             if project_name not in self.projects_data:
-                self.projects_data[project_name] = {"tasks": [[], [], [], []]} 
+                self.projects_data[project_name] = {"tasks": [[], [], [], []]}
                 self.project_list.addItem(project_name)
-                self.project_list.setCurrentRow(self.project_list.count() - 1) 
-                # 새 프로젝트는 자동 저장 여부와 관계없이 기본 파일 생성 (중요)
-                self.save_project_to_file(project_name) 
+                self.project_list.setCurrentRow(self.project_list.count() - 1)
+                self.save_project_to_file(project_name)
+                self.adjust_sidebar_width()
             else:
                 QMessageBox.warning(self, "중복 오류", "이미 존재하는 프로젝트 이름입니다.")
-        # self.update_quadrant_display(self.current_project_name) # setCurrentRow에서 on_project_selection_changed 호출로 처리
 
     def rename_selected_project(self):
         current_item = self.project_list.currentItem()
         if not current_item:
             return
-        
         old_name = current_item.text()
         new_name, ok = QInputDialog.getText(self, "이름 변경", f"'{old_name}'의 새 이름:", text=old_name)
-
         if ok and new_name.strip() and new_name.strip() != old_name:
             new_name_stripped = new_name.strip()
             if new_name_stripped in self.projects_data:
                 QMessageBox.warning(self, "중복 오류", "이미 존재하는 프로젝트 이름입니다.")
                 return
-
             self.projects_data[new_name_stripped] = self.projects_data.pop(old_name)
             current_item.setText(new_name_stripped)
-            # self.current_project_name = new_name_stripped # on_project_selection_changed가 처리
-            
             old_file_path = os.path.join(self.data_dir, f"project_{old_name}.json")
             new_file_path = os.path.join(self.data_dir, f"project_{new_name_stripped}.json")
             if os.path.exists(old_file_path):
                 try:
                     os.rename(old_file_path, new_file_path)
                 except OSError as e:
-                     QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
-            
-            # 자동 저장 로직 적용 (내용 변경은 없지만, 파일 이름 변경 후 일관성을 위해 저장)
+                    QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
             if self.auto_save_enabled:
-                self.save_project_to_file(new_name_stripped) 
-            # 현재 선택된 프로젝트 이름은 on_project_selection_changed에 의해 업데이트되므로,
-            # 해당 콜백 내에서 update_quadrant_display가 호출됨.
+                self.save_project_to_file(new_name_stripped)
+            self.adjust_sidebar_width()
 
     def delete_selected_project(self):
         current_item = self.project_list.currentItem()
         if not current_item:
             return
-
         project_name = current_item.text()
-        reply = QMessageBox.question(self, "프로젝트 삭제", 
-                                     f"'{project_name}' 프로젝트를 삭제하시겠습니까?\n(데이터와 해당 프로젝트 파일 모두 삭제됩니다!)",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
+        reply = QMessageBox.question(self, "프로젝트 삭제", f"'{project_name}' 프로젝트를 삭제하시겠습니까?\n(데이터와 해당 프로젝트 파일 모두 삭제됩니다!)", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             row = self.project_list.row(current_item)
-            self.project_list.takeItem(row) 
+            self.project_list.takeItem(row)
             if project_name in self.projects_data:
-                del self.projects_data[project_name] 
-            
+                del self.projects_data[project_name]
             file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
             if os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                 except OSError as e:
                     QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 삭제 실패: {e}")
-
             if self.project_list.count() > 0:
-                 new_row = max(0, row -1)
-                 if new_row < self.project_list.count(): # Ensure new_row is a valid index
+                new_row = max(0, row - 1)
+                if new_row < self.project_list.count():
                     self.project_list.setCurrentRow(new_row)
-                 else: #Fallback if new_row is out of bounds (e.g. last item deleted)
-                    self.project_list.setCurrentRow(self.project_list.count() -1 if self.project_list.count() > 0 else -1)
+                else:
+                    self.project_list.setCurrentRow(self.project_list.count() - 1 if self.project_list.count() > 0 else -1)
             else:
-                 self.current_project_name = None 
-                 self.clear_all_quadrants()
-            # 삭제 작업은 자동 저장과 직접적 연관은 적음. on_project_selection_changed가 후속 처리.
+                self.current_project_name = None
+                self.clear_all_quadrants()
+            self.adjust_sidebar_width()
 
     def on_project_selection_changed(self, current_item, previous_item):
         # 이전 프로젝트 저장 (자동 저장 옵션에 따라)
@@ -785,13 +860,18 @@ class MainWindow(QMainWindow):
         self.projects_data.clear()
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
-            
         for filename in os.listdir(self.data_dir):
             if filename.startswith("project_") and filename.endswith(".json"):
-                project_name = filename[8:-5] # "project_" 와 ".json" 제거
-                self.projects_data[project_name] = self.load_project_from_file(project_name)
+                project_name = filename[8:-5]
+                project_data = self.load_project_from_file(project_name)
+                if "completed" not in project_data:
+                    project_data["completed"] = []
+                    for tasks in project_data.get("tasks", [[], [], [], []]):
+                        project_data["completed"].append([False] * len(tasks))
+                self.projects_data[project_name] = project_data
                 self.project_list.addItem(project_name)
-    
+        self.adjust_sidebar_width()
+
     def select_initial_project(self):
         if self.project_list.count() > 0:
             self.project_list.setCurrentRow(0)
@@ -802,7 +882,6 @@ class MainWindow(QMainWindow):
             self.project_list.addItem(default_project_name)
             self.project_list.setCurrentRow(0)
             self.save_project_to_file(default_project_name)
-
 
     def update_quadrant_display(self, project_name):
         if project_name and project_name in self.projects_data:
@@ -904,15 +983,6 @@ class MainWindow(QMainWindow):
             # SettingsDialog 내부의 accept_settings 메서드에서 QSettings에 필요한 값들이 저장됩니다.
             # (예: 데이터 디렉토리 변경, 자동 저장 활성화 여부 등)
             # MainWindow의 always_on_top이나 window_opacity 값은 SettingsDialog에서 직접 제어하지 않으므로,
-            # 여기서 dialog 객체로부터 해당 값을 읽어올 필요가 없습니다.
-            # 이 값들은 MainWindow의 툴바 액션과 save_settings/load_settings를 통해 관리됩니다.
-            
-            # 아래 두 줄이 AttributeError의 원인이므로 삭제합니다.
-            # self.always_on_top = dialog.always_on_top_checkbox.isChecked()
-            # self.window_opacity = dialog.opacity_slider.value() / 100.0
-            
-            # SettingsDialog에서 auto_save_enabled가 변경되었다면, MainWindow의 상태도 업데이트될 수 있도록
-            # SettingsDialog의 _on_auto_save_changed에서 self.main_window_ref.auto_save_enabled를 업데이트합니다.
             # 여기서는 추가 작업이 필요 없습니다.
             pass
 
@@ -1078,7 +1148,7 @@ class MainWindow(QMainWindow):
             try:
                 os.makedirs(self.data_dir)
             except OSError as e:
-                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\\n{e}")
+                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
                 return # 디렉토리 생성 실패 시 더 이상 진행 불가
 
         self.load_all_projects() # 사이드바도 채워짐
@@ -1106,6 +1176,52 @@ class MainWindow(QMainWindow):
                 self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
                 self.toggle_sidebar_action.setToolTip("사이드바 보이기")
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 사이드바 폭 조정 코드 없음 (고정 폭)
+
+# --- 투명도 조절 팝업 위젯 --- #
+class OpacityPopup(QWidget):
+    def __init__(self, parent_window):
+        super().__init__(parent_window)
+        self.main_window = parent_window
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: rgba(240, 240, 240, 0.95);
+                border: 1px solid #c0c0c0;
+                border-radius: 6px;
+            }
+        """)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(20)
+        self.slider.setMaximum(100)
+        self.slider.setValue(int(self.main_window.window_opacity * 100))
+        self.slider.valueChanged.connect(self.slider_value_changed)
+
+        self.value_label = QLabel(f"{self.slider.value()}%")
+        self.value_label.setAlignment(Qt.AlignCenter)
+
+        slider_layout = QHBoxLayout()
+        slider_layout.addWidget(QLabel("투명도:"))
+        slider_layout.addWidget(self.slider)
+        slider_layout.addWidget(self.value_label)
+        layout.addLayout(slider_layout)
+        self.setFixedSize(220, 60)
+
+    def slider_value_changed(self, value):
+        self.value_label.setText(f"{value}%")
+        self.main_window.set_window_opacity(value / 100.0)
+
+    def show_at(self, pos):
+        self.move(pos)
+        self.show()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
