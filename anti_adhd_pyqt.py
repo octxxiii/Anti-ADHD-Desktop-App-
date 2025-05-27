@@ -614,7 +614,7 @@ class EisenhowerQuadrantWidget(QFrame):
         main_layout.addWidget(self.list_widget, stretch=1)
         main_layout.addLayout(input_layout)
         self.setLayout(main_layout)
-        
+
     def _connect_signals(self):
         """시그널 연결"""
         self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -645,7 +645,7 @@ class EisenhowerQuadrantWidget(QFrame):
         if any(item["title"] == title for item in self.items):
             if self.main_window:
                 self.main_window.statusBar().showMessage("이미 존재하는 제목입니다.", 2000)
-            self.input_field.clear()
+                self.input_field.clear()
             self.input_field.setFocus()
             return
         item_data = {
@@ -1173,7 +1173,7 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar("메인 툴바")
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
-        self.toolbar.setIconSize(QSize(20, 20))
+        self.toolbar.setIconSize(QSize(20, 20)) 
         self.toolbar.setStyleSheet(f"""
             QToolBar {{
                 background: {BG};
@@ -1322,11 +1322,11 @@ class MainWindow(QMainWindow):
         self.toolbar.addWidget(spacer)
 
         # --- 나머지 UI 구성 (사이드바, 4분면 등) --- #
-        self.sidebar = QFrame()
+        self.sidebar = QFrame() 
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setFrameShape(QFrame.StyledPanel)
         self.sidebar_layout = QVBoxLayout(self.sidebar)
-        self.project_list_label = QLabel("프로젝트 목록:")
+        self.project_list_label = QLabel("프로젝트 목록:") 
         self.sidebar_layout.addWidget(self.project_list_label)
         self.project_list = ProjectListWidget(self)
         self.project_list.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -1369,7 +1369,7 @@ class MainWindow(QMainWindow):
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.sidebar)
         self.splitter.addWidget(main_content_widget)
-        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(1, 1) 
         # QSplitter 핸들 완전 비활성화
         self.splitter.setHandleWidth(0)
         self.splitter.setChildrenCollapsible(False)
@@ -1446,10 +1446,10 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(f"새 프로젝트 '{project_name}' 생성 중...")
                 QApplication.processEvents()
                 
-                self.projects_data[project_name] = {"tasks": [[], [], [], []]}
+                self.projects_data[project_name] = {"tasks": [[], [], [], []]} 
                 self.project_list.addItem(project_name)
-                self.project_list.setCurrentRow(self.project_list.count() - 1)
-                self.save_project_to_file(project_name)
+                self.project_list.setCurrentRow(self.project_list.count() - 1) 
+                self.save_project_to_file(project_name) 
                 self.adjust_sidebar_width()
                 
                 self.statusBar().showMessage(f"새 프로젝트 '{project_name}' 생성 완료", 3000)
@@ -1475,9 +1475,9 @@ class MainWindow(QMainWindow):
                 try:
                     os.rename(old_file_path, new_file_path)
                 except OSError as e:
-                    QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
+                     QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
             if self.auto_save_enabled:
-                self.save_project_to_file(new_name_stripped)
+                self.save_project_to_file(new_name_stripped) 
             self.adjust_sidebar_width()
 
     def delete_selected_project(self):
@@ -1488,9 +1488,9 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(self, "프로젝트 삭제", f"'{project_name}' 프로젝트를 삭제하시겠습니까?\n(데이터와 해당 프로젝트 파일 모두 삭제됩니다!)", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             row = self.project_list.row(current_item)
-            self.project_list.takeItem(row)
+            self.project_list.takeItem(row) 
             if project_name in self.projects_data:
-                del self.projects_data[project_name]
+                del self.projects_data[project_name] 
             file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
             if os.path.exists(file_path):
                 try:
@@ -1504,8 +1504,8 @@ class MainWindow(QMainWindow):
                 else:
                     self.project_list.setCurrentRow(self.project_list.count() - 1 if self.project_list.count() > 0 else -1)
             else:
-                self.current_project_name = None
-                self.clear_all_quadrants()
+                 self.current_project_name = None 
+                 self.clear_all_quadrants()
             self.adjust_sidebar_width()
 
     def on_project_selection_changed(self, current_item, previous_item):
@@ -1568,7 +1568,7 @@ class MainWindow(QMainWindow):
             except:
                 pass
         self.statusBar().showMessage(f"'{project_name}' 저장 완료", 3000)
-        
+
     def load_project_from_file(self, project_name):
         self.statusBar().showMessage(f"'{project_name}' 로드 중...")
         QApplication.processEvents()
@@ -1576,30 +1576,24 @@ class MainWindow(QMainWindow):
         file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
         if not os.path.exists(file_path):
             return {"tasks": [[], [], [], []]}
-            
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                
             # 데이터 구조 검증 및 보정
             if not isinstance(data, dict):
                 raise ValueError("프로젝트 데이터가 올바른 형식이 아닙니다.")
-                
             if "tasks" not in data:
                 data["tasks"] = [[], [], [], []]
             elif not isinstance(data["tasks"], list) or len(data["tasks"]) != 4:
                 # tasks 배열이 올바르지 않으면 기본값으로 초기화
                 data["tasks"] = [[], [], [], []]
-                
             self.statusBar().showMessage(f"'{project_name}' 로드 완료", 3000)
             return data
-            
         except json.JSONDecodeError as e:
             QMessageBox.critical(self, "로드 오류", 
                 f"프로젝트 '{project_name}' 파일이 손상되었습니다:\n{e}\n\n"
                 "프로젝트를 백업에서 복원하거나 새로 만들어주세요.")
             return {"tasks": [[], [], [], []]}
-            
         except Exception as e:
             QMessageBox.critical(self, "로드 오류", 
                 f"프로젝트 '{project_name}' 로드 중 오류가 발생했습니다:\n{e}")
@@ -1621,7 +1615,7 @@ class MainWindow(QMainWindow):
                 self.projects_data[project_name] = project_data
                 self.project_list.addItem(project_name)
         self.adjust_sidebar_width()
-
+    
     def select_initial_project(self):
         if self.project_list.count() > 0:
             self.project_list.setCurrentRow(0)
@@ -2072,14 +2066,14 @@ class MainWindow(QMainWindow):
         """현재 테마 적용"""
         if self.dark_mode:
             self.setStyleSheet("""
-                QMainWindow {
+        QMainWindow {
                     background-color: #1e1e1e;
-                }
-                QWidget {
+        }
+        QWidget {
                     font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", "Arial", sans-serif;
                     color: #e0e0e0;
-                }
-                QGroupBox {
+        }
+        QGroupBox {
                     font-weight: 600;
                     border: 1px solid #404040;
                     border-radius: 8px;
@@ -2092,7 +2086,7 @@ class MainWindow(QMainWindow):
                 }
                 QListWidget {
                     border: 1px solid #404040;
-                    border-radius: 6px;
+            border-radius: 6px;
                     background-color: #2d2d2d;
                     padding: 4px;
                 }
@@ -2266,63 +2260,63 @@ class MainWindow(QMainWindow):
                     margin-top: 8px;
                     background-color: #ffffff;
                     padding: 12px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
                     subcontrol-position: top left;
                     padding: 0 8px;
                     color: #34495e;
-                }
-                QListWidget {
+        }
+        QListWidget {
                     border: 1px solid #e0e0e0;
                     border-radius: 6px;
-                    background-color: #ffffff;
+            background-color: #ffffff;
                     padding: 4px;
-                }
-                QListWidget::item {
+        }
+        QListWidget::item {
                     padding: 6px;
                     border-radius: 4px;
                     margin: 2px 0;
-                }
-                QListWidget::item:selected {
+        }
+        QListWidget::item:selected {
                     background-color: #3498db;
-                    color: white;
-                }
+            color: white;
+        }
                 QListWidget::item:hover {
                     background-color: #f0f0f0;
                 }
-                QTextEdit, QLineEdit {
+        QTextEdit, QLineEdit {
                     border: 1px solid #e0e0e0;
                     border-radius: 6px;
                     padding: 6px;
-                    background-color: #ffffff;
+            background-color: #ffffff;
                     selection-background-color: #3498db;
-                    selection-color: white;
-                }
-                QTextEdit:focus, QLineEdit:focus {
+            selection-color: white;
+        }
+        QTextEdit:focus, QLineEdit:focus {
                     border: 1px solid #3498db;
                     background-color: #ffffff;
-                }
-                QPushButton {
+        }
+        QPushButton {
                     background-color: #ffffff;
                     border: 1px solid #e0e0e0;
                     border-radius: 6px;
                     padding: 6px 12px;
                     min-height: 24px;
                     font-weight: 500;
-                }
-                QPushButton:hover {
+        }
+        QPushButton:hover {
                     background-color: #f8f9fa;
                     border-color: #3498db;
-                }
-                QPushButton:pressed {
+        }
+        QPushButton:pressed {
                     background-color: #e9ecef;
-                }
-                QPushButton:disabled {
+        }
+        QPushButton:disabled {
                     background-color: #f8f9fa;
                     color: #adb5bd;
-                }
-                QToolBar {
+        }
+        QToolBar {
                     background-color: #ffffff;
                     border-bottom: 1px solid #e0e0e0;
                     padding: 4px;
@@ -2333,37 +2327,37 @@ class MainWindow(QMainWindow):
                     border-radius: 4px;
                     background: transparent;
                     color: #2c3e50;
-                }
-                QToolButton:hover {
+        }
+        QToolButton:hover {
                     background-color: #f8f9fa;
-                }
-                QToolButton:pressed {
+        }
+        QToolButton:pressed {
                     background-color: #e9ecef;
-                }
-                QMenu {
-                    background-color: #ffffff;
+        }
+        QMenu {
+            background-color: #ffffff;
                     border: 1px solid #e0e0e0;
                     border-radius: 6px;
                     padding: 4px;
-                }
-                QMenu::item {
+        }
+        QMenu::item {
                     padding: 6px 24px;
                     border-radius: 4px;
-                }
-                QMenu::item:selected {
+        }
+        QMenu::item:selected {
                     background-color: #3498db;
-                    color: white;
-                }
-                QDialog {
+            color: white;
+        }
+        QDialog {
                     background-color: #f8f9fa;
-                }
-                QLabel {
+        }
+        QLabel {
                     background-color: transparent;
                 }
                 QCheckBox {
                     spacing: 8px;
-                }
-                QCheckBox::indicator {
+        }
+        QCheckBox::indicator {
                     width: 18px;
                     height: 18px;
                     border: 1px solid #e0e0e0;
@@ -2386,7 +2380,7 @@ class MainWindow(QMainWindow):
                 QSlider::handle:horizontal {
                     background: #3498db;
                     border: none;
-                    width: 16px;
+            width: 16px;
                     margin: -4px 0;
                     border-radius: 8px;
                 }
