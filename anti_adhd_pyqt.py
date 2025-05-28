@@ -432,47 +432,187 @@ class ProjectListWidget(QListWidget):
     def __init__(self, main_window, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.main_window = main_window
-
+        self.setStyleSheet("""
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 8px;
+                margin: 2px 4px;
+                border-radius: 4px;
+                color: #333333;
+            }
+            QListWidget::item:selected {
+                background-color: #e0e0e0;
+                color: #000000;
+            }
+            QListWidget::item:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        
     def showEvent(self, event):
         super().showEvent(event)
-        QTimer.singleShot(0, self.main_window.adjust_sidebar_width)
+        # 현재 선택된 프로젝트 강조
+        current_item = self.currentItem()
+        if current_item:
+            self.setCurrentItem(current_item)
+            
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        # 클릭한 항목이 있는 경우에만 선택 상태 업데이트
+        item = self.itemAt(event.pos())
+        if item:
+            self.setCurrentItem(item)
+            # 메인 윈도우의 프로젝트 선택 이벤트 발생
+            self.main_window.on_project_selection_changed(item, self.currentItem())
+            
+    def keyPressEvent(self, event):
+        super().keyPressEvent(event)
+        # 키보드로 선택 변경 시에도 상태 업데이트
+        if event.key() in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Home, Qt.Key_End):
+            current_item = self.currentItem()
+            if current_item:
+                self.main_window.on_project_selection_changed(current_item, None)
 
 class EisenhowerQuadrantWidget(QFrame):
     def __init__(self, color, keyword, description, icon=None, main_window_ref=None):
         super().__init__()
-        self.main_window = main_window_ref
         self.color = color
         self.keyword = keyword
         self.description = description
         self.icon = icon
-        self.setObjectName("eisenhowerQuadrant")
+        self.main_window = main_window_ref
+        self.items = []
         
-        # 캐시 초기화
-        self._due_date_cache = {}
-        self._item_cache = {}
-        self._last_update = 0
-        self._update_interval = 1000  # 1초마다 업데이트
-        
-        # 색상 계산 (한 번만)
+        # 색상 계산
         from PyQt5.QtGui import QColor
         base = QColor(color)
         light = base.lighter(170).name()
         dark = base.darker(130).name()
         border = base.darker(120).name()
         
-        # 위젯 생성
         self._init_widgets()
         self._setup_styles(color, light, dark, border)
         self._setup_layout()
         self._connect_signals()
-        
-        # 초기화
-        self.notified_set = set()
-        self.items = []
-        
-        # 애니메이션 설정
         self._setup_animations()
         
+    def _update_list_item(self, item: QListWidgetItem, idx: int) -> None:
+        """리스트 아이템 업데이트"""
+        # 체크 상태 먼저 업데이트
+        is_checked = item.checkState() == Qt.CheckState.Checked
+        self.items[idx]["checked"] = is_checked
+        
+        # 텍스트 업데이트
+        title = item.text()
+        if title.startswith("✓ "):
+            title = title[2:]
+        self.items[idx]["title"] = title
+        
+        # UI 업데이트
+        if is_checked:
+            item.setText(f"✓ {title}")
+            item.setForeground(QColor("#666666"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+        else:
+            item.setText(title)
+            item.setForeground(QColor("#000000"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            
+        # 상세 내용이 있으면 툴팁으로 표시
+        if self.items[idx]["details"]:
+            item.setToolTip(f"{title}\n\n{self.items[idx]['details']}")
+        else:
+            item.setToolTip(title)
+            
+        # 체크 상태에 따라 아이템 위치 재정렬
+        self._reorder_items()
+        
+        # 즉시 저장
+        self._save_current_state()
+        
+    def _save_current_state(self):
+        """현재 상태를 즉시 저장"""
+        if not self.main_window or not self.main_window.current_project_name:
+            return
+            
+        # 현재 사분면의 인덱스 찾기
+        quadrant_idx = -1
+        for i, quad in enumerate(self.main_window.quadrant_widgets):
+            if quad == self:
+                quadrant_idx = i
+                break
+                
+        if quadrant_idx >= 0:
+            # 프로젝트 데이터 업데이트
+            project_data = self.main_window.projects_data[self.main_window.current_project_name]
+            if "tasks" in project_data and len(project_data["tasks"]) > quadrant_idx:
+                project_data["tasks"][quadrant_idx] = self.items
+                # 즉시 파일에 저장
+                self.main_window.save_project_to_file(self.main_window.current_project_name)
+                
+    def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
+        """리스트에 새 항목 추가"""
+        title = item_data["title"]
+        if item_data["checked"]:
+            title = f"✓ {title}"
+            
+        item = QListWidgetItem(title)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+        
+        if idx is not None:
+            self.list_widget.insertItem(idx, item)
+        else:
+            self.list_widget.addItem(item)
+            
+        # 체크 상태에 따라 스타일 적용
+        if item_data["checked"]:
+            item.setForeground(QColor("#666666"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+        else:
+            item.setForeground(QColor("#000000"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            
+        # 상세 내용이 있으면 툴팁으로 표시
+        if item_data["details"]:
+            item.setToolTip(f"{title}\n\n{item_data['details']}")
+        else:
+            item.setToolTip(title)
+            
+    def _reorder_items(self):
+        """체크된 항목을 하단으로 이동"""
+        # 체크되지 않은 항목과 체크된 항목 분리
+        unchecked_items = []
+        checked_items = []
+        
+        for i, item_data in enumerate(self.items):
+            if item_data["checked"]:
+                checked_items.append((i, item_data))
+            else:
+                unchecked_items.append((i, item_data))
+                
+        # 새로운 순서로 items 배열 재구성
+        new_items = []
+        for _, item_data in unchecked_items:
+            new_items.append(item_data)
+        for _, item_data in checked_items:
+            new_items.append(item_data)
+            
+        # items 배열 업데이트
+        self.items = new_items
+        
+        # 리스트 위젯 업데이트
+        self.list_widget.clear()
+        for item_data in self.items:
+            self._add_list_item(item_data)
+            
+        # 즉시 저장
+        self._save_current_state()
+
     def _init_widgets(self):
         """위젯 초기화"""
         self.list_widget = QListWidget()
@@ -511,14 +651,24 @@ class EisenhowerQuadrantWidget(QFrame):
         pastel_light = pastel.get(color, light)
         pastel_border_c = pastel_border.get(color, border)
         pastel_dark_c = pastel_dark.get(color, dark)
+        
         # 메인 프레임 스타일
         self.setStyleSheet(f"""
-            QFrame#eisenhowerQuadrant {{
+            QFrame {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {pastel_light}, stop:1 white);
                 border-radius: 14px;
                 border: 2px solid {pastel_border_c};
             }}
+            QLabel {{
+                color: {pastel_dark_c};
+                font-family: 'Segoe UI', 'Noto Sans KR', 'Pretendard', Arial, sans-serif;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                border: none;
+            }}
         """)
+        
         # 리스트 위젯 스타일 (아이템 높이/여백 최소화)
         self.list_widget.setStyleSheet(f"""
             QListWidget {{
@@ -536,7 +686,7 @@ class EisenhowerQuadrantWidget(QFrame):
                 margin-bottom: 2px;
                 font-size: 9.5pt;
                 color: #333;
-                background: rgba(255,255,255,0.7);
+                background: transparent;
             }}
             QListWidget::item:selected, QListWidget::item:focus {{
                 background: {pastel_border_c};
@@ -546,7 +696,12 @@ class EisenhowerQuadrantWidget(QFrame):
             QListWidget::item:hover {{
                 background: #f3f6fa;
             }}
+            QListWidget::item:checked {{
+                color: #666666;
+                text-decoration: line-through;
+            }}
         """)
+        
         # 입력 필드 스타일 (높이 최소화)
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
@@ -566,6 +721,7 @@ class EisenhowerQuadrantWidget(QFrame):
                 background: #f8fbff;
             }}
         """)
+        
         # 추가 버튼 스타일 (높이 최소화)
         self.add_button.setStyleSheet(f"""
             QPushButton {{
@@ -617,12 +773,104 @@ class EisenhowerQuadrantWidget(QFrame):
 
     def _connect_signals(self):
         """시그널 연결"""
-        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
-        self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.add_button.clicked.connect(self.add_task)
-        self.input_field.returnPressed.connect(self.add_task)
+        self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
+        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
+        # 체크박스 상태 변경 이벤트 연결
+        self.list_widget.itemChanged.connect(self._on_item_changed)
         
+    def _on_item_changed(self, item: QListWidgetItem):
+        """아이템 체크 상태 변경 처리"""
+        if not item:  # 아이템이 유효한지 확인
+            return
+            
+        idx = self.list_widget.row(item)
+        if idx < 0 or idx >= len(self.items):
+            return
+            
+        # 체크 상태 업데이트
+        is_checked = item.checkState() == Qt.CheckState.Checked
+        self.items[idx]["checked"] = is_checked
+        
+        # 체크 상태에 따라 아이템 위치 재정렬
+        self._reorder_items_without_recursion()
+        
+        # 즉시 저장
+        self._save_current_state()
+        
+    def _reorder_items_without_recursion(self):
+        """체크된 항목을 하단으로 이동 (재귀 없이)"""
+        # 체크되지 않은 항목과 체크된 항목 분리
+        unchecked_items = []
+        checked_items = []
+        
+        for item_data in self.items:
+            if item_data["checked"]:
+                checked_items.append(item_data)
+            else:
+                unchecked_items.append(item_data)
+                
+        # 새로운 순서로 items 배열 재구성
+        self.items = unchecked_items + checked_items
+        
+        # 리스트 위젯 업데이트
+        self.list_widget.blockSignals(True)  # 시그널 차단
+        self.list_widget.clear()
+        
+        for item_data in self.items:
+            title = item_data["title"]
+            item = QListWidgetItem(title)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+            
+            # 체크 상태에 따라 스타일 적용
+            if item_data["checked"]:
+                item.setForeground(QColor("#666666"))
+                item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            else:
+                item.setForeground(QColor("#000000"))
+                item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+                
+            # 상세 내용이 있으면 툴팁으로 표시
+            if item_data["details"]:
+                item.setToolTip(f"{title}\n\n{item_data['details']}")
+            else:
+                item.setToolTip(title)
+                
+            self.list_widget.addItem(item)
+            
+        self.list_widget.blockSignals(False)  # 시그널 차단 해제
+        
+    def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
+        """리스트에 새 항목 추가"""
+        title = item_data["title"]
+        if item_data["checked"]:
+            title = f"✓ {title}"
+            
+        item = QListWidgetItem(title)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+        
+        if idx is not None:
+            self.list_widget.insertItem(idx, item)
+        else:
+            self.list_widget.addItem(item)
+            
+        # 체크 상태에 따라 스타일 적용
+        if item_data["checked"]:
+            item.setForeground(QColor("#666666"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+        else:
+            item.setForeground(QColor("#000000"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            
+        # 상세 내용이 있으면 툴팁으로 표시
+        if item_data["details"]:
+            item.setToolTip(f"{title}\n\n{item_data['details']}")
+        else:
+            item.setToolTip(title)
+            
     def _setup_animations(self):
         """애니메이션 설정"""
         self._fade_animation = QPropertyAnimation(self, b"windowOpacity")
@@ -641,6 +889,8 @@ class EisenhowerQuadrantWidget(QFrame):
         if not title:
             return
             
+        print(f"[DEBUG] 할 일 추가 시도: {title}")
+            
         # 중복 체크
         if any(item["title"] == title for item in self.items):
             if self.main_window:
@@ -648,95 +898,43 @@ class EisenhowerQuadrantWidget(QFrame):
                 self.input_field.clear()
             self.input_field.setFocus()
             return
+            
+        # 현재 시간을 ISO 형식으로 저장
+        current_time = datetime.now().isoformat()
+        
         item_data = {
             "title": title,
             "details": "",
             "checked": False,
             "due_date": None,
-            "reminders": []
+            "reminders": [],
+            "created_at": current_time,
+            "modified_at": current_time
         }
-        if "due_date" not in item_data:
-            item_data["due_date"] = None
-        if "reminders" not in item_data:
-            item_data["reminders"] = []
+        
+        print(f"[DEBUG] 새 항목 데이터: {item_data}")
+        
         self.items.append(item_data)
         self._add_list_item(item_data, idx=len(self.items)-1)
         self.input_field.clear()
         self.input_field.setFocus()
+        
+        # 자동 저장 추가
+        if self.main_window and self.main_window.current_project_name:
+            print(f"[DEBUG] 자동 저장 시도: {self.main_window.current_project_name}")
+            # 현재 프로젝트의 데이터 구조 업데이트
+            project_data = self.main_window.projects_data.get(self.main_window.current_project_name, {"tasks": [[], [], [], []]})
+            # 현재 사분면의 인덱스 찾기
+            quadrant_index = self.main_window.quadrant_widgets.index(self)
+            # 해당 사분면의 tasks 배열에 새 항목 추가
+            project_data["tasks"][quadrant_index] = self.items
+            # 프로젝트 데이터 업데이트
+            self.main_window.projects_data[self.main_window.current_project_name] = project_data
+            # 파일에 저장
+            self.main_window.save_project_to_file(self.main_window.current_project_name)
+            
         if self.main_window:
             self.main_window.statusBar().showMessage("항목이 추가되었습니다.", 1500)
-
-    def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
-        """리스트에 아이템 추가 및 표시 동기화."""
-        item = QListWidgetItem()
-        if idx is None:
-            idx = len(self.items) - 1
-        self._update_list_item(item, idx)
-        item.setData(Qt.UserRole, item_data)
-        self.list_widget.addItem(item)
-
-    def _update_list_item(self, item: QListWidgetItem, idx: int) -> None:
-        """리스트 아이템의 텍스트/툴팁/체크박스 상태를 동기화."""
-        if idx < 0 or idx >= len(self.items):
-            return
-        item_data = self.items[idx]
-        ICON_MEMO = "📝"
-        ICON_DUE = "⏰"
-        icons = []
-        if item_data.get("details") and item_data["details"].strip():
-            icons.append(ICON_MEMO)
-        if item_data.get("due_date") and str(item_data["due_date"]).strip():
-            icons.append(ICON_DUE)
-        dday_str = ""
-        due_date_cache = getattr(self, '_due_date_cache', None)
-        if due_date_cache is None:
-            due_date_cache = {}
-            self._due_date_cache = due_date_cache
-        due_key = item_data.get("due_date")
-        if due_key and due_key in due_date_cache:
-            dday_str = due_date_cache[due_key]
-        elif item_data.get("due_date") and str(item_data["due_date"]).strip():
-            try:
-                due_dt = datetime.strptime(item_data["due_date"], "%Y-%m-%d %H:%M")
-                now = datetime.now()
-                due_date_only = due_dt.date()
-                today = now.date()
-                delta_days = (due_date_only - today).days
-                if delta_days == 0:
-                    dday_str = "[D-DAY]"
-                elif delta_days > 0:
-                    dday_str = f"[D-{delta_days}일]"
-                else:
-                    dday_str = f"[D+{abs(delta_days)}일]"
-                due_date_cache[due_key] = dday_str
-            except:
-                pass
-        title = item_data["title"]
-        display_title = title
-        if len(display_title) > 30:
-            display_title = display_title[:30] + "..."
-        prefix = []
-        if dday_str:
-            prefix.append(dday_str)
-        if icons:
-            prefix.append(' '.join(icons))
-        if prefix:
-            display_title = f"{' '.join(prefix)} {display_title}"
-        item.setText(display_title)
-        item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-        item.setCheckState(Qt.Checked if item_data["checked"] else Qt.Unchecked)
-        tooltip = []
-        tooltip.append(f"제목: {title}")
-        if item_data.get("details"):
-            tooltip.append(f"세부내용: {item_data['details']}")
-        if item_data.get("due_date"):
-            tooltip.append(f"마감일: {item_data['due_date']}")
-        if item_data.get("reminders"):
-            reminder_str = ', '.join([
-                f"{m//60}시간 전" if m >= 60 else f"{m}분 전" for m in item_data["reminders"]
-            ])
-            tooltip.append(f"알림: {reminder_str}")
-        item.setToolTip("\n".join(tooltip))
 
     def on_item_double_clicked(self, item) -> None:
         idx = self.list_widget.row(item)
@@ -745,36 +943,81 @@ class EisenhowerQuadrantWidget(QFrame):
         self.edit_task_dialog(idx, item)
 
     def show_context_menu(self, position) -> None:
+        """컨텍스트 메뉴 표시"""
         item = self.list_widget.itemAt(position)
         if not item:
             return
+            
+        menu = QMenu()
+        
+        # 이동 메뉴 추가
+        move_menu = menu.addMenu("중요도/긴급도 변경")
+        
+        # 각 사분면의 의미를 간단하게 표현
+        quadrant_meanings = {
+            0: "중요/긴급",
+            1: "중요",
+            2: "긴급",
+            3: "중요X/긴급X"
+        }
+        
+        for i, quad in enumerate(self.main_window.quadrant_widgets):
+            if quad != self:  # 현재 사분면 제외
+                action = move_menu.addAction(quadrant_meanings[i])
+                action.triggered.connect(lambda checked, target_quad=quad: self._move_item_to_quadrant(item, target_quad))
+        
+        # 기존 메뉴 항목들
+        edit_action = menu.addAction("수정")
+        delete_action = menu.addAction("삭제")
+        
+        # 메뉴 표시 및 액션 처리
+        action = menu.exec(self.list_widget.mapToGlobal(position))
+        
+        if action == edit_action:
+            self.edit_task_dialog(self.list_widget.row(item), item)
+        elif action == delete_action:
+            self.list_widget.takeItem(self.list_widget.row(item))
+            self.items.pop(self.list_widget.row(item))
+            self._save_current_state()
+            
+    def _move_item_to_quadrant(self, item: QListWidgetItem, target_quadrant) -> None:
+        """아이템을 다른 사분면으로 이동"""
+        if not item or not target_quadrant:
+            return
+            
+        # 현재 아이템의 데이터 가져오기
         idx = self.list_widget.row(item)
         if idx < 0 or idx >= len(self.items):
             return
-        menu = QMenu()
-        edit_action = menu.addAction("수정")
-        delete_action = menu.addAction("삭제")
-        menu.addSeparator()
-        toggle_action = menu.addAction("완료 표시" if item.checkState() == Qt.Unchecked else "완료 해제")
-        action = menu.exec_(self.list_widget.mapToGlobal(position))
-        if not action:
-            return
-        if action == edit_action:
-            self.edit_task_dialog(idx, item)
-        elif action == delete_action:
-            if idx < len(self.items):
-                self.items.pop(idx)
-            self.list_widget.takeItem(idx)
-            if self.main_window:
-                self.main_window.statusBar().showMessage("항목이 삭제되었습니다.", 1500)
-        elif action == toggle_action:
-            if idx < len(self.items):
-                checked = not self.items[idx]["checked"]
-                self.items[idx]["checked"] = checked
-                item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
-                msg = "완료됨" if checked else "미완료로 변경됨"
-                if self.main_window:
-                    self.main_window.statusBar().showMessage(msg, 2000)
+            
+        item_data = self.items[idx].copy()
+        
+        # 현재 사분면에서 아이템 제거
+        self.list_widget.takeItem(idx)
+        self.items.pop(idx)
+        
+        # 대상 사분면에 아이템 추가
+        target_quadrant.items.append(item_data)
+        target_quadrant._add_list_item(item_data)
+        
+        # 상태바에 이동 메시지 표시
+        quadrant_meanings = {
+            0: "중요/긴급",
+            1: "중요",
+            2: "긴급",
+            3: "중요X/긴급X"
+        }
+        
+        target_idx = self.main_window.quadrant_widgets.index(target_quadrant)
+        if self.main_window:
+            self.main_window.statusBar().showMessage(
+                f"'{item_data['title']}'을(를) {quadrant_meanings[target_idx]}로 이동했습니다.",
+                2000
+            )
+        
+        # 두 사분면 모두 저장
+        self._save_current_state()
+        target_quadrant._save_current_state()
 
     def edit_task_dialog(self, idx, item):
         from PyQt5.QtWidgets import QDateTimeEdit, QCheckBox, QGridLayout
@@ -861,31 +1104,83 @@ class EisenhowerQuadrantWidget(QFrame):
         self.list_widget.clear()
 
     def load_tasks(self, tasks_list):
-        self.clear_tasks()
-        items_to_add = []
-        for item_data in tasks_list:
-            if isinstance(item_data, str):
-                item_data = {"title": item_data, "details": "", "checked": False, "due_date": None, "reminders": []}
+        """태스크 목록 로드"""
+        self.items = tasks_list
+        self.list_widget.clear()
+        
+        # 시그널 차단
+        self.list_widget.blockSignals(True)
+        
+        for item_data in self.items:
+            title = item_data["title"]
+            item = QListWidgetItem(title)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+            
+            # 체크 상태에 따라 스타일 적용
+            if item_data["checked"]:
+                item.setForeground(QColor("#666666"))
+                item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
             else:
-                if "due_date" not in item_data:
-                    item_data["due_date"] = None
-                if "reminders" not in item_data:
-                    item_data["reminders"] = []
-            self.items.append(item_data)
-            items_to_add.append(item_data)
-        n = len(items_to_add)
-        if n > 1:
-            self.list_widget.setUpdatesEnabled(False)
-        for i, item_data in enumerate(items_to_add):
-            self._add_list_item(item_data, idx=i)
-        if n > 1:
-            self.list_widget.setUpdatesEnabled(True)
+                item.setForeground(QColor("#000000"))
+                item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+                
+            # 상세 내용이 있으면 툴팁으로 표시
+            if item_data["details"]:
+                item.setToolTip(f"{title}\n\n{item_data['details']}")
+            else:
+                item.setToolTip(title)
+                
+            self.list_widget.addItem(item)
+            
+        # 시그널 차단 해제
+        self.list_widget.blockSignals(False)
+        
+    def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
+        """리스트에 새 항목 추가"""
+        title = item_data["title"]
+        item = QListWidgetItem(title)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+        
+        # 체크 상태에 따라 스타일 적용
+        if item_data["checked"]:
+            item.setForeground(QColor("#666666"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+        else:
+            item.setForeground(QColor("#000000"))
+            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            
+        # 상세 내용이 있으면 툴팁으로 표시
+        if item_data["details"]:
+            item.setToolTip(f"{title}\n\n{item_data['details']}")
+        else:
+            item.setToolTip(title)
+            
+        if idx is not None:
+            self.list_widget.insertItem(idx, item)
+        else:
+            self.list_widget.addItem(item)
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings_file = "anti_adhd_settings.ini"
-        self.data_dir = "anti_adhd_data"
+        
+        # 절대 경로로 변경 (AppData/Local 사용)
+        app_data_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Anti-ADHD')
+        self.data_dir = os.path.join(app_data_dir, 'data')
+        print(f"[DEBUG] 초기화: 데이터 디렉토리 = {self.data_dir}")
+        
+        # 데이터 디렉토리 생성
+        try:
+            os.makedirs(self.data_dir, exist_ok=True)
+            print(f"[DEBUG] 데이터 디렉토리 생성/확인 완료")
+        except OSError as e:
+            print(f"[DEBUG] 데이터 디렉토리 생성 실패: {e}")
+            QMessageBox.critical(self, "초기화 오류", 
+                f"데이터 디렉토리 생성 실패:\n{self.data_dir}\n{e}")
+        
         self.always_on_top = False
         self.window_opacity = 1.0
         self.auto_save_enabled = True
@@ -903,11 +1198,6 @@ class MainWindow(QMainWindow):
 
         self.projects_data = {}
         self.current_project_name = None
-        if not os.path.exists(self.data_dir):
-            try:
-                os.makedirs(self.data_dir)
-            except OSError as e:
-                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
         self.load_all_projects()
         self.select_initial_project()
         self.force_adjust_sidebar_width()
@@ -1509,56 +1799,143 @@ class MainWindow(QMainWindow):
             self.adjust_sidebar_width()
 
     def on_project_selection_changed(self, current_item, previous_item):
+        """프로젝트 선택 변경 시 호출"""
+        if not current_item:
+            return
+            
+        project_name = current_item.text()
+        print(f"[DEBUG] 프로젝트 선택 변경: {project_name}")
+        
         # 이전 프로젝트 저장 (자동 저장 옵션에 따라)
-        if previous_item and previous_item.text() in self.projects_data:
-            if self.auto_save_enabled:
-                self.save_project_to_file(previous_item.text())
-
-        if current_item:
-            self.current_project_name = current_item.text()
-            # 캐시된 데이터 사용
-            project_data = self._get_project_data(self.current_project_name)
-            self.update_quadrant_display(self.current_project_name)
-            self.update_project_status_label()  # 상태바 프로젝트명 갱신
-        else:
-            self.current_project_name = None
-            self.clear_all_quadrants()
-            self.update_project_status_label()
+        if previous_item and self.auto_save_enabled:
+            previous_project = previous_item.text()
+            print(f"[DEBUG] 이전 프로젝트 저장: {previous_project}")
+            self.save_project_to_file(previous_project)
+        
+        # 새 프로젝트 로드
+        if project_name not in self.projects_data:
+            print(f"[DEBUG] 새 프로젝트 데이터 로드: {project_name}")
+            self.projects_data[project_name] = self.load_project_from_file(project_name)
+        
+        # 현재 프로젝트 이름 업데이트
+        self.current_project_name = project_name
+        print(f"[DEBUG] 현재 프로젝트 설정: {project_name}")
+        
+        # UI 업데이트
+        self.update_quadrant_display(project_name)
+        self.update_project_status_label()
+        
+        # 프로젝트 목록 UI 업데이트
+        for i in range(self.project_list.count()):
+            item = self.project_list.item(i)
+            if item.text() == project_name:
+                self.project_list.setCurrentItem(item)
+                item.setSelected(True)
+                break
+        
+        # 상태바 메시지
+        self.statusBar().showMessage(f"'{project_name}' 프로젝트로 전환", 2000)
 
     def save_project_to_file(self, project_name):
         if not project_name or project_name not in self.projects_data:
+            print(f"[DEBUG] 저장 실패: 프로젝트 이름이 유효하지 않음 (project_name={project_name})")
             return
-        self.statusBar().showMessage(f"'{project_name}' 저장 중...")
-        QApplication.processEvents()
-        file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
-        try:
-            # --- 마감일/알림 필드 보장: 모든 항목에 due_date, reminders 필드가 반드시 포함되도록 ---
-            project = self.projects_data[project_name]
-            for i, quadrant in enumerate(project.get("tasks", [])):
-                for j, item in enumerate(quadrant):
-                    if not isinstance(item, dict):
-                        # 문자열 등 dict가 아니면 마이그레이션
-                        item = {"title": str(item), "details": "", "checked": False, "due_date": None, "reminders": []}
-                        quadrant[j] = item
+            
+        print(f"[DEBUG] 저장 시작: {project_name}")
+        print(f"[DEBUG] 데이터 디렉토리: {self.data_dir}")
+        
+        # 데이터 구조 검증 및 보정
+        project_data = self.projects_data[project_name]
+        if "tasks" not in project_data:
+            project_data["tasks"] = [[], [], [], []]
+            
+        # 각 사분면의 데이터 구조 검증
+        for quadrant in project_data["tasks"]:
+            if not isinstance(quadrant, list):
+                quadrant = []
+            for i, item in enumerate(quadrant):
+                if not isinstance(item, dict):
+                    current_time = datetime.now().isoformat()
+                    quadrant[i] = {
+                        "title": str(item),
+                        "details": "",
+                        "checked": False,
+                        "due_date": None,
+                        "reminders": [],
+                        "created_at": current_time,
+                        "modified_at": current_time
+                    }
+                else:
+                    # 필수 필드 확인 및 추가
+                    if "title" not in item:
+                        item["title"] = ""
+                    if "details" not in item:
+                        item["details"] = ""
+                    if "checked" not in item:
+                        item["checked"] = False
                     if "due_date" not in item:
                         item["due_date"] = None
                     if "reminders" not in item:
                         item["reminders"] = []
+                    if "created_at" not in item:
+                        item["created_at"] = datetime.now().isoformat()
+                    if "modified_at" not in item:
+                        item["modified_at"] = datetime.now().isoformat()
+        
+        print(f"[DEBUG] 검증된 프로젝트 데이터: {project_data}")
+        
+        # 데이터 디렉토리 존재 확인 및 생성
+        if not os.path.exists(self.data_dir):
+            try:
+                os.makedirs(self.data_dir, exist_ok=True)
+                print(f"[DEBUG] 데이터 디렉토리 생성됨: {self.data_dir}")
+            except OSError as e:
+                print(f"[DEBUG] 데이터 디렉토리 생성 실패: {e}")
+                QMessageBox.critical(self, "저장 오류", 
+                    f"데이터 디렉토리 생성 실패:\n{self.data_dir}\n{e}")
+                return
+
+        self.statusBar().showMessage(f"'{project_name}' 저장 중...")
+        QApplication.processEvents()
+        
+        file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
+        print(f"[DEBUG] 저장할 파일 경로: {file_path}")
+        
+        try:
             # 임시 파일에 먼저 저장
             temp_file_path = file_path + '.tmp'
+            print(f"[DEBUG] 임시 파일에 저장 시도: {temp_file_path}")
+            
+            # 데이터를 JSON으로 직렬화
+            json_data = json.dumps(project_data, ensure_ascii=False, indent=4)
+            print(f"[DEBUG] 직렬화된 데이터: {json_data}")
+            
+            # 임시 파일에 저장
             with open(temp_file_path, 'w', encoding='utf-8') as f:
-                json.dump(self.projects_data[project_name], f, ensure_ascii=False, indent=4)
+                f.write(json_data)
+            
             # 저장 성공 시 기존 파일 교체
             if os.path.exists(file_path):
                 os.replace(temp_file_path, file_path)
             else:
                 os.rename(temp_file_path, file_path)
+                
+            print(f"[DEBUG] 파일 저장 완료: {file_path}")
+            
+            # 저장된 파일 확인
+            if os.path.exists(file_path):
+                print(f"[DEBUG] 저장된 파일 크기: {os.path.getsize(file_path)} bytes")
+            else:
+                print(f"[DEBUG] 저장된 파일이 존재하지 않음!")
+            
             # 캐시 업데이트
             self._project_cache[project_name] = {
-                'data': self.projects_data[project_name],
+                'data': project_data,
                 'last_access': time.time()
             }
+            
         except (IOError, OSError) as e:
+            print(f"[DEBUG] 저장 중 오류 발생: {e}")
             QMessageBox.critical(self, "저장 오류", 
                 f"프로젝트 '{project_name}' 저장 중 오류가 발생했습니다:\n{e}\n\n"
                 "임시 파일이 남아있을 수 있습니다. 프로그램을 다시 시작해주세요.")
@@ -1567,29 +1944,47 @@ class MainWindow(QMainWindow):
                     os.remove(temp_file_path)
             except:
                 pass
+            return
+            
         self.statusBar().showMessage(f"'{project_name}' 저장 완료", 3000)
+        print(f"[DEBUG] 저장 프로세스 완료: {project_name}")
 
     def load_project_from_file(self, project_name):
+        print(f"[DEBUG] 프로젝트 파일 로드 시작: {project_name}")
         self.statusBar().showMessage(f"'{project_name}' 로드 중...")
         QApplication.processEvents()
         
         file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
+        print(f"[DEBUG] 파일 경로: {file_path}")
+        
         if not os.path.exists(file_path):
+            print(f"[DEBUG] 파일이 존재하지 않음: {file_path}")
             return {"tasks": [[], [], [], []]}
+            
         try:
+            print(f"[DEBUG] 파일 읽기 시도")
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+            print(f"[DEBUG] 파일 읽기 성공")
+            
             # 데이터 구조 검증 및 보정
             if not isinstance(data, dict):
+                print(f"[DEBUG] 데이터가 딕셔너리가 아님: {type(data)}")
                 raise ValueError("프로젝트 데이터가 올바른 형식이 아닙니다.")
+                
             if "tasks" not in data:
+                print(f"[DEBUG] tasks 필드 없음, 기본값으로 초기화")
                 data["tasks"] = [[], [], [], []]
             elif not isinstance(data["tasks"], list) or len(data["tasks"]) != 4:
-                # tasks 배열이 올바르지 않으면 기본값으로 초기화
+                print(f"[DEBUG] tasks 배열이 올바르지 않음: {data['tasks']}")
                 data["tasks"] = [[], [], [], []]
+                
+            print(f"[DEBUG] 데이터 구조 검증 완료")
             self.statusBar().showMessage(f"'{project_name}' 로드 완료", 3000)
             return data
+            
         except json.JSONDecodeError as e:
+            print(f"[DEBUG] JSON 디코딩 오류: {e}")
             QMessageBox.critical(self, "로드 오류", 
                 f"프로젝트 '{project_name}' 파일이 손상되었습니다:\n{e}\n\n"
                 "프로젝트를 백업에서 복원하거나 새로 만들어주세요.")
@@ -1600,20 +1995,51 @@ class MainWindow(QMainWindow):
             return {"tasks": [[], [], [], []]}
 
     def load_all_projects(self):
+        print(f"[DEBUG] 프로젝트 로드 시작")
+        print(f"[DEBUG] 데이터 디렉토리: {self.data_dir}")
+        
         self.project_list.clear()
         self.projects_data.clear()
+        
         if not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
+            print(f"[DEBUG] 데이터 디렉토리가 존재하지 않음, 생성 시도")
+            try:
+                os.makedirs(self.data_dir)
+                print(f"[DEBUG] 데이터 디렉토리 생성됨")
+            except OSError as e:
+                print(f"[DEBUG] 데이터 디렉토리 생성 실패: {e}")
+                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
+                return
+        
+        # 디렉토리 내용 확인
+        try:
+            files = os.listdir(self.data_dir)
+            print(f"[DEBUG] 디렉토리 내용: {files}")
+        except OSError as e:
+            print(f"[DEBUG] 디렉토리 읽기 실패: {e}")
+            return
+            
         for filename in os.listdir(self.data_dir):
             if filename.startswith("project_") and filename.endswith(".json"):
-                project_name = filename[8:-5]
+                project_name = filename[8:-5]  # "project_" 제거하고 ".json" 제거
+                print(f"[DEBUG] 프로젝트 파일 발견: {filename}")
+                print(f"[DEBUG] 프로젝트 이름 추출: {project_name}")
+                
                 project_data = self.load_project_from_file(project_name)
+                print(f"[DEBUG] 프로젝트 데이터 로드: {project_name}")
+                print(f"[DEBUG] 데이터 내용: {project_data}")
+                
                 if "completed" not in project_data:
                     project_data["completed"] = []
                     for tasks in project_data.get("tasks", [[], [], [], []]):
                         project_data["completed"].append([False] * len(tasks))
+                
                 self.projects_data[project_name] = project_data
                 self.project_list.addItem(project_name)
+                print(f"[DEBUG] 프로젝트 추가 완료: {project_name}")
+        
+        print(f"[DEBUG] 전체 프로젝트 로드 완료")
+        print(f"[DEBUG] 로드된 프로젝트 수: {len(self.projects_data)}")
         self.adjust_sidebar_width()
     
     def select_initial_project(self):
