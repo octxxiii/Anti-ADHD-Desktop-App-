@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSettings, QUrl, QPoint, QSize, QTimer, QDateTime, QCoreApplication
 from PyQt5.QtCore import QPropertyAnimation
 from PyQt5.QtGui import QIcon, QDesktopServices, QPainter, QPen, QColor, QPixmap, QCursor, QFont
+from PyQt5.QtPrintSupport import QPrintPreviewDialog, QPrinter
 import sys
 import os
 import json
@@ -246,7 +247,7 @@ MIT License
 Copyright (c) 2024 octaxii
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the \"Software\"), to deal
+of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
@@ -255,7 +256,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -1255,6 +1256,12 @@ class MainWindow(QMainWindow):
         # 검색 기능 초기화
         self.setup_search()
 
+        # 도움말 메뉴 추가
+        help_menu = self.menuBar().addMenu("도움말")
+        help_action = QAction("도움말 보기", self)
+        help_action.triggered.connect(self.open_help_dialog)
+        help_menu.addAction(help_action)
+
     def setup_shortcuts(self):
         """키보드 단축키 설정"""
         # 프로젝트 관련
@@ -2077,9 +2084,9 @@ class MainWindow(QMainWindow):
     def set_always_on_top(self, enabled):
         self.always_on_top = enabled
         if enabled:
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        else:
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.update_always_on_top_icon() # 아이콘 및 툴큐 업데이트
         self.show() # 플래그 변경 후 show() 호출 필수
 
@@ -2111,10 +2118,20 @@ class MainWindow(QMainWindow):
     def load_settings(self):
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
         self.restoreGeometry(settings.value("geometry", self.saveGeometry()))
-        sidebar_visible = settings.value("sidebarVisible", True, type=bool)
-        if hasattr(self, 'sidebar'): 
-            self.sidebar.setVisible(sidebar_visible)
-            self.update_sidebar_toggle_icon() # settings 로드 후 아이콘 상태 업데이트
+        
+        # 툴바 상태 복원
+        toolbar_visible = settings.value("toolbarVisible", True, type=bool)
+        search_toolbar_visible = settings.value("searchToolbarVisible", True, type=bool)
+        
+        if hasattr(self, 'toolbar'):
+            self.toolbar.setVisible(toolbar_visible)
+            if hasattr(self, 'toggle_toolbar_action'):
+                self.toggle_toolbar_action.setChecked(toolbar_visible)
+                
+        if hasattr(self, 'search_toolbar'):
+            self.search_toolbar.setVisible(search_toolbar_visible)
+            if hasattr(self, 'toggle_searchbar_action'):
+                self.toggle_searchbar_action.setChecked(search_toolbar_visible)
         
         self.data_dir = settings.value("dataDir", self.data_dir)
         
@@ -2137,6 +2154,13 @@ class MainWindow(QMainWindow):
     def save_settings(self):
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
         settings.setValue("geometry", self.saveGeometry())
+        
+        # 툴바 상태 저장
+        if hasattr(self, 'toolbar'):
+            settings.setValue("toolbarVisible", self.toolbar.isVisible())
+        if hasattr(self, 'search_toolbar'):
+            settings.setValue("searchToolbarVisible", self.search_toolbar.isVisible())
+            
         settings.setValue("sidebarVisible", self.sidebar.isVisible())
         settings.setValue("dataDir", self.data_dir) # 현재 사용 중인 data_dir을 저장
         settings.setValue("alwaysOnTop", self.always_on_top)
@@ -2256,51 +2280,44 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "오류", f"현재 프로젝트 '{self.current_project_name}'의 데이터를 찾을 수 없습니다.")
             return
 
-        # 새 프로젝트 이름 제안 시 현재 이름 기반 (예: "현재프로젝트명_복사본")
+        # 새 프로젝트 이름 제안 시 현재 이름 기반
         suggested_new_name = f"{self.current_project_name}_복사본"
         
-        options = QFileDialog.Options()
-        # 파일 다이얼로그에서 실제 파일 저장은 하지 않고, 이름과 경로만 얻음
-        # 실제 저장은 save_project_to_file 내부에서 일어남
-        new_file_path, _ = QFileDialog.getSaveFileName(self, 
-                                                       "프로젝트 다른 이름으로 저장", 
-                                                       os.path.join(self.data_dir, f"project_{suggested_new_name}.json"), 
-                                                       "JSON 파일 (*.json)", 
-                                                       options=options)
-        if not new_file_path:
-            return # 사용자가 취소
-
-        # 파일 경로에서 새 프로젝트 이름 추출 (project_ 접두사와 .json 확장자 고려)
-        new_project_filename = os.path.basename(new_file_path)
-        if new_project_filename.startswith("project_") and new_project_filename.endswith(".json"):
-            new_project_name = new_project_filename[8:-5]
-        else:
-            # 기본 이름 지정 방식이 아니면, 사용자에게 경고하거나 다른 방식의 이름 추출 필요
-            # 여기서는 단순하게 파일명(확장자제거)을 프로젝트 이름으로 사용 시도
-            new_project_name, _ = os.path.splitext(new_project_filename)
-            # 추가적인 이름 정제 로직이 필요할 수 있음 (예: 공백, 특수문자 처리)
-            if not new_project_name.strip():
-                QMessageBox.warning(self, "오류", "올바른 새 프로젝트 이름을 파일명에서 추출할 수 없습니다.")
-                return
+        # 파일 저장 다이얼로그
+        new_file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "프로젝트 다른 이름으로 저장",
+            os.path.join(self.data_dir, f"project_{suggested_new_name}.json"),
+            "JSON 파일 (*.json)"
+        )
         
-        new_project_name = new_project_name.strip()
+        if not new_file_path:
+            return  # 사용자가 취소
 
-        if new_project_name == self.current_project_name or new_project_name in self.projects_data:
-            QMessageBox.warning(self, "중복 오류", f"프로젝트 이름 '{new_project_name}'은(는) 이미 존재합니다. 다른 이름을 사용해주세요.")
+        try:
+            # 선택한 경로에 파일 저장
+            with open(new_file_path, 'w', encoding='utf-8') as f:
+                json.dump(current_project_data, f, ensure_ascii=False, indent=4)
+
+            # 파일명에서 프로젝트 이름 추출
+            new_project_name = os.path.splitext(os.path.basename(new_file_path))[0]
+            if new_project_name.startswith("project_"):
+                new_project_name = new_project_name[8:]
+
+            # 프로젝트 목록에 새 프로젝트 추가
+            self.projects_data[new_project_name] = current_project_data
+            self.project_list.addItem(new_project_name)
+
+            # 새 프로젝트 선택
+            items = self.project_list.findItems(new_project_name, Qt.MatchExactly)
+            if items:
+                self.project_list.setCurrentItem(items[0])
+
+            QMessageBox.information(self, "저장 완료", f"프로젝트가 '{new_project_name}'(으)로 저장되었습니다.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "저장 오류", f"프로젝트 저장 중 오류가 발생했습니다: {str(e)}")
             return
-
-        # 데이터 복사 및 새 이름으로 저장
-        self.projects_data[new_project_name] = json.loads(json.dumps(current_project_data)) # 깊은 복사
-        self.save_project_to_file(new_project_name) # 새 이름으로 파일 저장
-
-        # 사이드바 업데이트 및 새 프로젝트 선택
-        self.project_list.addItem(new_project_name)
-        # QListWidget에서 텍스트로 아이템 찾기 (더 견고한 방법은 QListWidgetItem을 직접 관리하는 것)
-        items = self.project_list.findItems(new_project_name, Qt.MatchExactly)
-        if items:
-            self.project_list.setCurrentItem(items[0])
-        # self.current_project_name은 on_project_selection_changed에 의해 업데이트됨
-        QMessageBox.information(self, "성공", f"프로젝트가 '{new_project_name}'(으)로 저장되었습니다.")
 
     def reload_data_and_ui(self):
         """
@@ -2897,7 +2914,7 @@ class MainWindow(QMainWindow):
 
     def filter_tasks(self):
         """작업 필터링"""
-        search_text = self.search_input.text().lower()
+        search_text = self.search_input.text().lower().strip()
         if not search_text:
             self.clear_search()
             return
@@ -2923,13 +2940,30 @@ class MainWindow(QMainWindow):
                     item.setHidden(True)
                     continue
                     
-                # 검색어 매칭
-                title_match = search_title and search_text in task_data.get("title", "").lower()
-                details_match = search_details and search_text in task_data.get("details", "").lower()
+                # 검색어 매칭 (부분 일치)
+                title_match = False
+                details_match = False
                 
+                if search_title:
+                    title = task_data.get("title", "").lower()
+                    title_match = search_text in title
+                    
+                if search_details:
+                    details = task_data.get("details", "").lower()
+                    details_match = search_text in details
+                
+                # 검색 결과 하이라이트
                 if title_match or details_match:
                     item.setHidden(False)
                     matched_tasks += 1
+                    
+                    # 검색어 하이라이트를 위한 스타일 설정
+                    if title_match:
+                        title = task_data.get("title", "")
+                        item.setText(title)  # 원래 텍스트로 복원
+                    if details_match:
+                        details = task_data.get("details", "")
+                        item.setToolTip(details)  # 툴팁으로 세부 내용 표시
                 else:
                     item.setHidden(True)
                     
@@ -2960,7 +2994,6 @@ class MainWindow(QMainWindow):
         # 통계 데이터 수집
         total_tasks = 0
         completed_tasks = 0
-        tasks_by_priority = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
         tasks_by_quadrant = [0, 0, 0, 0]
         completed_by_quadrant = [0, 0, 0, 0]
         
@@ -2968,7 +3001,6 @@ class MainWindow(QMainWindow):
             for item in quad.items:
                 total_tasks += 1
                 tasks_by_quadrant[i] += 1
-                tasks_by_priority[item.get("priority", 0)] += 1
                 
                 if item.get("checked", False):
                     completed_tasks += 1
@@ -3005,17 +3037,6 @@ class MainWindow(QMainWindow):
         quadrant_stats.setLayout(quadrant_layout)
         layout.addWidget(quadrant_stats)
         
-        # 우선순위별 통계
-        priority_stats = QGroupBox("우선순위별 통계")
-        priority_layout = QFormLayout()
-        for i in range(6):
-            count = tasks_by_priority[i]
-            if count > 0:
-                label = "우선순위 없음" if i == 0 else f"우선순위 {i}"
-                priority_layout.addRow(f"{label}:", QLabel(f"{count}개"))
-        priority_stats.setLayout(priority_layout)
-        layout.addWidget(priority_stats)
-        
         # 닫기 버튼
         close_button = QPushButton("닫기")
         close_button.clicked.connect(dialog.accept)
@@ -3024,51 +3045,88 @@ class MainWindow(QMainWindow):
         dialog.exec_()
         
     def export_task_report(self):
-        """작업 보고서 내보내기"""
+        """작업 보고서 프린트"""
         if not self.current_project_name:
             QMessageBox.information(self, "보고서", "프로젝트를 선택해주세요.")
             return
-        # 파일 저장 다이얼로그
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "보고서 저장", 
-            f"task_report_{self.current_project_name}.txt",
-            "텍스트 파일 (*.txt)"
-        )
-        if not file_path:
-            return
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                # 보고서 헤더
-                f.write(f"작업 보고서: {self.current_project_name}\n")
-                f.write(f"생성일시: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write("=" * 50 + "\n\n")
-                # 사분면별 작업 목록
-                quadrant_names = ["중요·긴급", "중요", "긴급", "중요 아님·긴급 아님"]
-                for i, (name, quad) in enumerate(zip(quadrant_names, self.quadrant_widgets)):
-                    f.write(f"[{name}]\n")
-                    f.write("-" * 30 + "\n")
-                    if not quad.items:
-                        f.write("작업 없음\n")
-                    else:
-                        for item in quad.items:
-                            # 상태 표시
-                            status = "✓" if item.get("checked", False) else "□"
-                            f.write(f"{status} {item['title']}\n")
-                            if item.get("details"):
-                                f.write(f"    {item['details']}\n")
-                            if item.get("due_date"):
-                                f.write(f"    마감일: {item['due_date']}\n")
-                            if item.get("reminders"):
-                                reminder_str = ', '.join([
-                                    f"{m//60}시간 전" if m >= 60 else f"{m}분 전" for m in item["reminders"]
-                                ])
-                                f.write(f"    알림: {reminder_str}\n")
-                    f.write("\n")
-            QMessageBox.information(self, "보고서 저장", 
-                f"작업 보고서가 다음 위치에 저장되었습니다:\n{file_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "보고서 저장 오류", 
-                f"보고서 저장 중 오류가 발생했습니다:\n{e}")
+
+        # 프린트 미리보기 다이얼로그 생성
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setPageSize(QPrinter.A4)
+        
+        preview = QPrintPreviewDialog(printer, self)
+        preview.paintRequested.connect(lambda p: self.print_report(p))
+        preview.exec_()
+
+    def print_report(self, printer):
+        """보고서 프린트"""
+        painter = QPainter()
+        painter.begin(printer)
+        
+        # 페이지 설정
+        page_rect = printer.pageRect()
+        margin = 50
+        y = margin
+        line_height = 20
+        
+        # 폰트 설정
+        title_font = QFont("Arial", 14, QFont.Bold)
+        header_font = QFont("Arial", 12, QFont.Bold)
+        normal_font = QFont("Arial", 10)
+        
+        # 제목
+        painter.setFont(title_font)
+        painter.drawText(margin, y, f"작업 보고서: {self.current_project_name}")
+        y += line_height * 2
+        
+        # 생성일시
+        painter.setFont(normal_font)
+        painter.drawText(margin, y, f"생성일시: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        y += line_height * 2
+        
+        # 사분면별 작업 목록
+        quadrant_names = ["중요·긴급", "중요", "긴급", "중요 아님·긴급 아님"]
+        for i, (name, quad) in enumerate(zip(quadrant_names, self.quadrant_widgets)):
+            # 사분면 제목
+            painter.setFont(header_font)
+            painter.drawText(margin, y, f"[{name}]")
+            y += line_height * 1.5
+            
+            # 작업 목록
+            painter.setFont(normal_font)
+            if not quad.items:
+                painter.drawText(margin + 20, y, "작업 없음")
+                y += line_height
+            else:
+                for item in quad.items:
+                    # 작업 제목
+                    title = item.get("title", "")
+                    checked = "✓ " if item.get("checked", False) else "□ "
+                    painter.drawText(margin + 20, y, checked + title)
+                    y += line_height
+                    
+                    # 세부 내용
+                    details = item.get("details", "")
+                    if details:
+                        painter.drawText(margin + 40, y, details)
+                        y += line_height
+                    
+                    # 마감일
+                    due_date = item.get("due_date")
+                    if due_date:
+                        painter.drawText(margin + 40, y, f"마감일: {due_date}")
+                        y += line_height
+                    
+                    y += line_height * 0.5
+            
+            y += line_height
+            
+            # 페이지 나누기
+            if y > page_rect.height() - margin:
+                printer.newPage()
+                y = margin
+        
+        painter.end()
 
     def toggle_main_toolbar(self):
         visible = not self.toolbar.isVisible()
@@ -3127,6 +3185,10 @@ class MainWindow(QMainWindow):
         else:
             self.project_status_label.setText("")
 
+    def open_help_dialog(self):
+        dialog = HelpDialog(self)
+        dialog.exec_()
+
 # --- 투명도 조절 팝업 위젯 --- #
 class OpacityPopup(QWidget):
     def __init__(self, parent_window):
@@ -3169,6 +3231,141 @@ class OpacityPopup(QWidget):
     def show_at(self, pos):
         self.move(pos)
         self.show()
+
+class HelpDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("도움말")
+        self.setMinimumSize(600, 400)
+        
+        # 탭 위젯 생성
+        self.tab_widget = QTabWidget()
+        
+        # 정보 탭
+        self.info_tab = QWidget()
+        self.setup_info_tab()
+        self.tab_widget.addTab(self.info_tab, "프로그램 정보")
+        
+        # 라이선스 탭
+        self.license_tab = QWidget()
+        self.setup_license_tab()
+        self.tab_widget.addTab(self.license_tab, "라이선스")
+        
+        # 도움말 탭
+        self.help_tab = QWidget()
+        self.setup_help_tab()
+        self.tab_widget.addTab(self.help_tab, "사용 방법")
+        
+        # 메인 레이아웃
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.tab_widget)
+        
+        # 닫기 버튼
+        close_button = QPushButton("닫기")
+        close_button.clicked.connect(self.accept)
+        layout.addWidget(close_button)
+        
+    def setup_info_tab(self):
+        layout = QVBoxLayout(self.info_tab)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+        
+        # 프로그램 정보 섹션
+        info_group_box = QGroupBox("프로그램 정보")
+        info_group_box.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        form_layout = QFormLayout()
+        form_layout.setSpacing(8)
+        form_layout.setContentsMargins(10, 6, 10, 10)
+        
+        app_name_label = QLabel("Anti-ADHD")
+        font = app_name_label.font()
+        font.setPointSize(13)
+        font.setBold(True)
+        app_name_label.setFont(font)
+        app_name_label.setStyleSheet("color: #1565c0;")
+        
+        form_layout.addRow(QLabel("이름:"), app_name_label)
+        form_layout.addRow(QLabel("버전:"), QLabel("1.0.1"))
+        form_layout.addRow(QLabel("개발자:"), QLabel("octaxii"))
+        
+        github_link = QLabel("<a href=\"https://github.com/octaxii/anti-adhd\">GitHub 저장소</a>")
+        github_link.setOpenExternalLinks(True)
+        form_layout.addRow(QLabel("GitHub:"), github_link)
+        
+        info_group_box.setLayout(form_layout)
+        layout.addWidget(info_group_box)
+        layout.addStretch()
+        
+    def setup_license_tab(self):
+        layout = QVBoxLayout(self.license_tab)
+        layout.setContentsMargins(16, 16, 16, 16)
+        
+        license_text_edit = QTextEdit()
+        license_text_edit.setReadOnly(True)
+        license_text_edit.setStyleSheet("font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        
+        mit_license_text = """
+MIT License
+
+Copyright (c) 2024 octaxii
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+        license_text_edit.setText(mit_license_text.strip())
+        layout.addWidget(license_text_edit)
+        
+    def setup_help_tab(self):
+        layout = QVBoxLayout(self.help_tab)
+        layout.setContentsMargins(16, 16, 16, 16)
+        
+        help_text = QTextEdit()
+        help_text.setReadOnly(True)
+        help_text.setStyleSheet("font-size: 9pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        
+        help_content = """
+<h2>Anti-ADHD 사용 방법</h2>
+
+<h3>기본 기능</h3>
+<ul>
+    <li><b>작업 추가:</b> 각 사분면의 + 버튼을 클릭하거나 Ctrl+N을 눌러 새 작업을 추가할 수 있습니다.</li>
+    <li><b>작업 편집:</b> 작업을 더블클릭하여 제목, 세부 내용, 마감일 등을 수정할 수 있습니다.</li>
+    <li><b>작업 이동:</b> 작업을 드래그하여 다른 사분면으로 이동할 수 있습니다.</li>
+    <li><b>작업 완료:</b> 작업을 체크하여 완료 표시를 할 수 있습니다.</li>
+</ul>
+
+<h3>프로젝트 관리</h3>
+<ul>
+    <li><b>프로젝트 생성:</b> 사이드바의 + 버튼을 클릭하여 새 프로젝트를 만들 수 있습니다.</li>
+    <li><b>프로젝트 이름 변경:</b> 프로젝트를 우클릭하여 이름을 변경할 수 있습니다.</li>
+    <li><b>프로젝트 삭제:</b> 프로젝트를 우클릭하여 삭제할 수 있습니다.</li>
+</ul>
+
+<h3>기타 기능</h3>
+<ul>
+    <li><b>검색:</b> 상단 검색창을 사용하여 작업을 검색할 수 있습니다.</li>
+    <li><b>통계:</b> 통계 버튼을 클릭하여 작업 완료율 등을 확인할 수 있습니다.</li>
+    <li><b>보고서:</b> 보고서 버튼을 클릭하여 작업 목록을 프린트할 수 있습니다.</li>
+    <li><b>테마 변경:</b> 설정에서 다크 모드를 켜고 끌 수 있습니다.</li>
+</ul>
+"""
+        help_text.setHtml(help_content)
+        layout.addWidget(help_text)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

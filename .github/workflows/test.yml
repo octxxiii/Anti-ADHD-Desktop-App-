@@ -1,12 +1,13 @@
-name: Build
+name: Test
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: windows-latest
     
     steps:
@@ -23,17 +24,12 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         
-    - name: Build executable
+    - name: Run tests
       run: |
-        python scripts/build.py
+        pytest --cov=core --cov-report=xml
         
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
       with:
-        files: |
-          dist/*.exe
-          dist/*.zip
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        file: ./coverage.xml
+        fail_ci_if_error: true 

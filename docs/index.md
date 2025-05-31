@@ -11,6 +11,15 @@
     [:octicons-download-24: 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest){ .md-button }
     [:octicons-book-24: 사용법](user-guide.md){ .md-button }
 
+    **설치/실행법**
+    1. Python 3.9+ 설치
+    2. `requirements.txt` 설치:  
+       `pip install -r requirements.txt`
+    3. 프로그램 실행:  
+       `python main.py`
+    4. (선택) 빌드:  
+       `pyinstaller --onefile --windowed main.py`
+
 -   :material-lightbulb:{ .lg .middle } __주요 기능__
 
     ---
@@ -33,7 +42,10 @@
 ## 🚀 시작하기
 
 1. [릴리즈 페이지](https://github.com/octxxiii/Anti-ADHD/releases/latest)에서 최신 버전의 `anti_adhd.exe` 다운로드
-2. 다운로드한 파일 실행
+2. 또는 소스코드 직접 실행:
+    - Python 3.9+ 설치
+    - `pip install -r requirements.txt`
+    - `python main.py`
 3. 프로그램을 실행하고 할 일을 관리하세요!
 
 !!! note "지원 환경"

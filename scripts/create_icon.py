@@ -1,3 +1,9 @@
+"""
+create_icon.py
+
+- PNG 이미지를 여러 크기의 ICO로 변환
+- 사용법: python scripts/create_icon.py input.png output.ico [--sizes 16,32,48,256]
+"""
 from PIL import Image, ImageDraw, ImageFont
 import os
 
