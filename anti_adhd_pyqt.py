@@ -569,34 +569,55 @@ class EisenhowerQuadrantWidget(QFrame):
                 self.main_window.save_project_to_file(self.main_window.current_project_name)
                 
     def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
-        """리스트에 새 항목 추가"""
-        title = item_data["title"]
-        if item_data["checked"]:
-            title = f"✓ {title}"
+        """항목을 리스트에 추가합니다."""
+        try:
+            # 항목 데이터 검증
+            if not isinstance(item_data, dict):
+                raise ValueError("item_data must be a dictionary")
             
-        item = QListWidgetItem(title)
-        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
-        
-        if idx is not None:
-            self.list_widget.insertItem(idx, item)
-        else:
-            self.list_widget.addItem(item)
+            # 필수 키 검증
+            required_keys = ['title', 'completed', 'priority', 'due_date', 'details', 'created_at', 'updated_at']
+            if not all(key in item_data for key in required_keys):
+                raise ValueError(f"item_data must contain all required keys: {required_keys}")
             
-        # 체크 상태에 따라 스타일 적용
-        if item_data["checked"]:
-            item.setForeground(QColor("#666666"))
-            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
-        else:
-            item.setForeground(QColor("#000000"))
-            item.setFont(QFont("Segoe UI", 9, QFont.Weight.Normal))
+            # 항목 생성 및 설정
+            item = QListWidgetItem()
+            item.setData(Qt.UserRole, item_data)
             
-        # 상세 내용이 있으면 툴팁으로 표시
-        if item_data["details"]:
-            item.setToolTip(f"{title}\n\n{item_data['details']}")
-        else:
-            item.setToolTip(title)
+            # 폰트 설정
+            font = QFont()
+            font.setPointSize(10)
+            item.setFont(font)
             
+            # 체크박스 설정
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Checked if item_data['completed'] else Qt.Unchecked)
+            
+            # 텍스트 설정
+            item.setText(self.render_task_title_with_emoji(item_data))
+            
+            # 항목 추가
+            if idx is not None:
+                self.list_widget.insertItem(idx, item)
+            else:
+                self.list_widget.addItem(item)
+            
+            # 항목 데이터 저장
+            self.items.append(item_data)
+            
+            # 항목 변경 시그널 연결
+            item.setData(Qt.UserRole + 1, True)  # 변경 플래그 설정
+            
+            # 항목 선택
+            self.list_widget.setCurrentItem(item)
+            
+            # 항목 추가 애니메이션
+            self._animate_add(item)
+            
+        except Exception as e:
+            print(f"Error in _add_list_item: {str(e)}")
+            raise
+
     def _reorder_items(self):
         """체크된 항목을 하단으로 이동"""
         # 체크되지 않은 항목과 체크된 항목 분리
@@ -895,57 +916,29 @@ class EisenhowerQuadrantWidget(QFrame):
         self._fade_animation.start()
         
     def add_task(self) -> None:
-        """입력창에서 할 일 추가"""
-        title = self.input_field.text().strip()
-        if not title:
-            return
+        """새로운 작업을 추가합니다."""
+        try:
+            # 기본 작업 데이터 생성
+            item_data = {
+                'title': '',
+                'completed': False,
+                'priority': 0,
+                'due_date': None,
+                'details': '',
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }
             
-        print(f"[DEBUG] 할 일 추가 시도: {title}")
-            
-        # 중복 체크
-        if any(item["title"] == title for item in self.items):
-            if self.main_window:
-                self.main_window.statusBar().showMessage("이미 존재하는 제목입니다.", 2000)
-                self.input_field.clear()
-            self.input_field.setFocus()
-            return
-            
-        # 현재 시간을 ISO 형식으로 저장
-        current_time = datetime.now().isoformat()
-        
-        item_data = {
-            "title": title,
-            "details": "",
-            "checked": False,
-            "due_date": None,
-            "reminders": [],
-            "created_at": current_time,
-            "modified_at": current_time
-        }
-        
-        print(f"[DEBUG] 새 항목 데이터: {item_data}")
-        
-        self.items.append(item_data)
-        self._add_list_item(item_data, idx=len(self.items)-1)
-        self.input_field.clear()
-        self.input_field.setFocus()
-        
-        # 자동 저장 추가
-        if self.main_window and self.main_window.current_project_name:
-            print(f"[DEBUG] 자동 저장 시도: {self.main_window.current_project_name}")
-            # 현재 프로젝트의 데이터 구조 업데이트
-            project_data = self.main_window.projects_data.get(self.main_window.current_project_name, {"tasks": [[], [], [], []]})
-            # 현재 사분면의 인덱스 찾기
-            quadrant_index = self.main_window.quadrant_widgets.index(self)
-            # 해당 사분면의 tasks 배열에 새 항목 추가
-            project_data["tasks"][quadrant_index] = self.items
-            # 프로젝트 데이터 업데이트
-            self.main_window.projects_data[self.main_window.current_project_name] = project_data
-            # 파일에 저장
-            self.main_window.save_project_to_file(self.main_window.current_project_name)
-            
-        if self.main_window:
-            self.main_window.statusBar().showMessage("항목이 추가되었습니다.", 1500)
+            # 작업 편집 다이얼로그 표시
+            if self.edit_task_dialog(0, None, item_data):
+                # 항목 추가
+                self._add_list_item(item_data)
+                # 상태 저장
+                self._save_current_state()
+                
+        except Exception as e:
+            print(f"Error in add_task: {str(e)}")
+            QMessageBox.critical(self, "오류", f"작업 추가 중 오류가 발생했습니다: {str(e)}")
 
     def on_item_double_clicked(self, item) -> None:
         idx = self.list_widget.row(item)
@@ -1348,59 +1341,12 @@ class MainWindow(QMainWindow):
         self.current_project_name = None
         self.load_all_projects()
         self.select_initial_project()
-        self.force_adjust_sidebar_width()
         
-        self.project_list.model().rowsInserted.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
-        self.project_list.model().rowsRemoved.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
-        self.project_list.model().dataChanged.connect(lambda *_: QTimer.singleShot(0, self.adjust_sidebar_width))
-
-        # 상태 표시줄 추가
-        self.statusBar().showMessage("준비")
-        self.statusBar().setStyleSheet("""
-            QStatusBar {
-                background: #f5f5f5;
-                border-top: 1px solid #d0d0d0;
-                padding: 2px;
-            }
-            QStatusBar QLabel {
-                padding: 2px 8px;
-                color: #666;
-            }
-        """)
-        # --- 프로젝트명 상태바 표시용 라벨 추가 ---
-        self.project_status_label = QLabel()
-        self.project_status_label.setStyleSheet("color: #1976d2; font-weight: bold; padding-right: 16px;")
-        self.statusBar().addPermanentWidget(self.project_status_label)
-        self.update_project_status_label()
-        
-        # 자동 백업 설정
-        self.backup_dir = os.path.join(self.data_dir, "backups")
-        self.last_backup_time = 0
-        self.backup_interval = 300  # 5분마다 백업
-        
-        # 백업 디렉토리 생성
-        if not os.path.exists(self.backup_dir):
-            try:
-                os.makedirs(self.backup_dir)
-            except OSError as e:
-                QMessageBox.warning(self, "백업 경고", 
-                    f"백업 디렉토리를 생성할 수 없습니다: {e}\n자동 백업이 비활성화됩니다.")
-                self.backup_interval = 0
-        
-        # 백업 타이머 설정
-        self.backup_timer = QTimer()
-        self.backup_timer.timeout.connect(self._auto_backup)
-        if self.backup_interval > 0:
-            self.backup_timer.start(self.backup_interval * 1000)
-            
-        # 도움말 메뉴 추가
-        # help_menu = self.menuBar().addMenu("도움말")
-        # help_action = QAction("도움말 보기", self)
-        # help_action.triggered.connect(self.open_help_dialog)
-        # help_menu.addAction(help_action)
-        # about_action = QAction("프로그램 정보", self)
-        # about_action.triggered.connect(lambda: QMessageBox.information(self, "정보", "ANTI-ADHD\nEisenhower Matrix 기반 생산성 도구"))
-        # help_menu.addAction(about_action)
+        # 사이드바 초기 상태 설정
+        settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
+        sidebar_visible = settings.value("sidebarVisible", False, type=bool)
+        self.sidebar.setVisible(sidebar_visible)
+        self.update_sidebar_toggle_icon()
 
     def setup_shortcuts(self):
         """키보드 단축키 설정"""
@@ -1724,7 +1670,11 @@ class MainWindow(QMainWindow):
         """)
         self.sidebar_layout.addWidget(self.project_list)
         self.sidebar_layout.addStretch()
-        self.sidebar.setFixedWidth(148)
+        
+        # 사이드바 크기 설정
+        self.sidebar.setMinimumWidth(150)
+        self.sidebar.setMaximumWidth(200)
+        
         # --- 검색바 스타일 개선 ---
         self.search_toolbar = self.addToolBar("검색")
         self.search_toolbar.setObjectName("search_toolbar")
@@ -1742,32 +1692,6 @@ class MainWindow(QMainWindow):
                 min-height: 32px;
             }}
         """)
-        
-        # --- 나머지 UI 구성 (사이드바, 4분면 등) --- #
-        self.sidebar = QFrame() 
-        self.sidebar.setObjectName("sidebar")
-        self.sidebar.setFrameShape(QFrame.StyledPanel)
-        self.sidebar_layout = QVBoxLayout(self.sidebar)
-        self.project_list_label = QLabel("프로젝트 목록:") 
-        self.sidebar_layout.addWidget(self.project_list_label)
-        self.project_list = ProjectListWidget(self)
-        self.project_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.project_list.customContextMenuRequested.connect(self.show_project_context_menu)
-        self.project_list.currentItemChanged.connect(self.on_project_selection_changed)
-        self.project_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.project_list.setWordWrap(False)
-        self.project_list.setUniformItemSizes(True)
-        self.sidebar_layout.addWidget(self.project_list)
-        self.sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        self.sidebar_layout.setSpacing(0)
-        self.sidebar.setContentsMargins(0, 0, 0, 0)
-        self.project_list.setContentsMargins(0, 0, 0, 0)
-        self.project_list_label.setContentsMargins(0, 0, 0, 0)
-        # [제프 딘] 사이드바 폭 완전 고정 (동적 조정 코드 제거)
-        self.sidebar.setFixedWidth(30)
-        self.sidebar.setContentsMargins(4, 4, 4, 4)
-        self.project_list.setContentsMargins(4, 4, 4, 4)
-        self.project_list_label.setContentsMargins(4, 4, 4, 4)
 
         # Eisenhower Matrix 색상/키워드/설명/아이콘 (한글화)
         quadrant_info = [
@@ -2205,10 +2129,35 @@ class MainWindow(QMainWindow):
             quad_widget.clear_tasks()
             
     def toggle_sidebar(self):
-        """사이드바 토글"""
-        visible = not self.sidebar.isVisible()
-        self.sidebar.setVisible(visible)
+        """사이드바 토글 (QSplitter 기반 완전 교정)"""
+        sidebar_index = 0  # splitter에서 sidebar의 인덱스
+        main_index = 1     # splitter에서 메인 컨텐츠 인덱스
+        sizes = self.splitter.sizes()
+        sidebar_visible = sizes[sidebar_index] > 0
+        if sidebar_visible:
+            # 사이드바 숨기기
+            self.splitter.setSizes([0, sizes[main_index] + sizes[sidebar_index]])
+        else:
+            # 사이드바 보이기 (최대 너비로)
+            self.splitter.setSizes([self.sidebar.maximumWidth(), sizes[main_index]])
+        self.sidebar.setVisible(not sidebar_visible)  # 접근성/포커스 위해 명시
         self.update_sidebar_toggle_icon()
+        # 메뉴 액션 체크 상태 동기화
+        for action in self.menuBar().actions():
+            if action.text() == "보기":
+                for sub_action in action.menu().actions():
+                    if sub_action.text() == "사이드바":
+                        sub_action.setChecked(not sidebar_visible)
+                        break
+        # 설정 저장
+        settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
+        settings.setValue("sidebarVisible", not sidebar_visible)
+
+    def _update_sidebar_state(self, visible):
+        """사이드바 상태 업데이트"""
+        # 아이콘 업데이트
+        self.update_sidebar_toggle_icon()
+        
         # 메뉴 액션 체크 상태 동기화
         for action in self.menuBar().actions():
             if action.text() == "보기":
@@ -2216,6 +2165,10 @@ class MainWindow(QMainWindow):
                     if sub_action.text() == "사이드바":
                         sub_action.setChecked(visible)
                         break
+        
+        # 설정 저장
+        settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
+        settings.setValue("sidebarVisible", visible)
 
     def set_always_on_top(self, enabled):
         self.always_on_top = enabled
@@ -2252,33 +2205,34 @@ class MainWindow(QMainWindow):
         #    self.opacity_popup.slider.setValue(int(opacity * 100))
 
     def load_settings(self):
+        """설정 로드 (QSplitter 사이즈까지 복원)"""
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
-        self.restoreGeometry(settings.value("geometry", self.saveGeometry()))
-        
-        # 툴바 상태 복원 (기본값 True)
-        toolbar_visible = settings.value("toolbarVisible", True, type=bool)
-        if hasattr(self, 'toolbar'):
-            self.toolbar.setVisible(toolbar_visible)
-            if hasattr(self, 'toggle_toolbar_action'):
-                self.toggle_toolbar_action.setChecked(toolbar_visible)
-        # ... (이하 기존 코드 유지) ...
-        
-        self.data_dir = settings.value("dataDir", self.data_dir)
-        
-        self.always_on_top = settings.value("alwaysOnTop", False, type=bool)
-        if hasattr(self, 'always_on_top_action'): 
-            self.always_on_top_action.setChecked(self.always_on_top) 
-        self.update_always_on_top_icon() # 아이콘 업데이트
-        if self.always_on_top_action.isChecked(): # 실제 창 상태도 반영
-             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        sidebar_visible = settings.value("sidebarVisible", False, type=bool)
+        if sidebar_visible:
+            self.splitter.setSizes([self.sidebar.maximumWidth(), 1])
+            self.sidebar.setVisible(True)
         else:
-             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-        # self.show() # init_ui 마지막이나 MainWindow.show() 에서 한 번에 처리
-        
+            self.splitter.setSizes([0, 1])
+            self.sidebar.setVisible(False)
+        self.update_sidebar_toggle_icon()
+        # 메뉴 액션 체크 상태 동기화
+        for action in self.menuBar().actions():
+            if action.text() == "보기":
+                for sub_action in action.menu().actions():
+                    if sub_action.text() == "사이드바":
+                        sub_action.setChecked(sidebar_visible)
+                        break
+        self.data_dir = settings.value("dataDir", self.data_dir)
+        self.always_on_top = settings.value("alwaysOnTop", False, type=bool)
+        if hasattr(self, 'always_on_top_action'):
+            self.always_on_top_action.setChecked(self.always_on_top)
+        self.update_always_on_top_icon()
+        if self.always_on_top_action.isChecked():
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.window_opacity = settings.value("windowOpacity", 1.0, type=float)
-        self.set_window_opacity(self.window_opacity) # 창 투명도 설정
-        # 툴바 슬라이더가 없어졌으므로 관련 코드 제거
-
+        self.set_window_opacity(self.window_opacity)
         self.auto_save_enabled = settings.value("general/autoSaveEnabled", True, type=bool)
     
     def save_settings(self):
@@ -2488,10 +2442,10 @@ class MainWindow(QMainWindow):
         """사이드바 토글 아이콘 업데이트"""
         if self.sidebar.isVisible():
             self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
-            self.toggle_sidebar_action.setToolTip("프로젝트 목록 숨기기")
+            self.toggle_sidebar_action.setToolTip("프로젝트 목록 숨기기 (Ctrl+B)")
         else:
             self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
-            self.toggle_sidebar_action.setToolTip("프로젝트 목록 보이기")
+            self.toggle_sidebar_action.setToolTip("프로젝트 목록 보이기 (Ctrl+B)")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
