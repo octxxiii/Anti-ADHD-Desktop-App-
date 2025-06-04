@@ -479,6 +479,9 @@ class ProjectListWidget(QListWidget):
                 background-color: #f0f0f0;
             }
         """)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
+        self.viewport().customContextMenuRequested.connect(self.main_window.show_project_context_menu)
         
     def showEvent(self, event):
         super().showEvent(event)
@@ -488,7 +491,12 @@ class ProjectListWidget(QListWidget):
             self.setCurrentItem(current_item)
             
     def mousePressEvent(self, event):
-        super().mousePressEvent(event)
+        if event.button() == Qt.RightButton:
+            pos = event.pos()
+            self.main_window.show_project_context_menu(pos)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
         # 클릭한 항목이 있는 경우에만 선택 상태 업데이트
         item = self.itemAt(event.pos())
         if item:
@@ -505,6 +513,57 @@ class ProjectListWidget(QListWidget):
                 self.main_window.on_project_selection_changed(current_item, None)
 
 class EisenhowerQuadrantWidget(QFrame):
+    class EisenhowerTaskListWidget(QListWidget):
+        def __init__(self, parent_quadrant):
+            super().__init__()
+            self.parent_quadrant = parent_quadrant
+            self.setDragEnabled(True)
+            self.setAcceptDrops(True)
+            self.setDropIndicatorShown(True)
+            self.setDefaultDropAction(Qt.MoveAction)
+            self.setSelectionMode(QAbstractItemView.SingleSelection)
+
+        def mimeTypes(self):
+            return ['application/x-antiadhd-task']
+
+        def mimeData(self, items):
+            # 하나의 아이템만 지원
+            item = items[0]
+            idx = self.row(item)
+            item_data = self.parent_quadrant.items[idx]
+            mime = super().mimeData(items)
+            mime.setData('application/x-antiadhd-task', json.dumps(item_data).encode('utf-8'))
+            return mime
+
+        def dropMimeData(self, index, data, action):
+            if data.hasFormat('application/x-antiadhd-task'):
+                try:
+                    item_data = json.loads(bytes(data.data('application/x-antiadhd-task')).decode('utf-8'))
+                except Exception as e:
+                    print(f"[DEBUG] 드롭 데이터 역직렬화 오류: {e}")
+                    return False
+                # 원본 Quadrant에서 삭제
+                for quad in self.parent_quadrant.main_window.quadrant_widgets:
+                    if item_data in quad.items:
+                        idx = quad.items.index(item_data)
+                        quad.items.pop(idx)
+                        quad._reorder_items()
+                        quad._save_current_state()
+                        break
+                # 대상 Quadrant에 추가
+                self.parent_quadrant.items.append(item_data)
+                self.parent_quadrant._reorder_items()
+                self.parent_quadrant._save_current_state()
+                # 상태바 알림
+                if self.parent_quadrant.main_window:
+                    self.parent_quadrant.main_window.statusBar().showMessage(
+                        f"'{item_data['title']}'이(가) 사분면 간 이동됨", 2000)
+                return True
+            return super().dropMimeData(index, data, action)
+
+        def supportedDropActions(self):
+            return Qt.MoveAction
+
     def __init__(self, color, keyword, description, icon=None, main_window_ref=None):
         super().__init__()
         self.color = color
@@ -649,8 +708,8 @@ class EisenhowerQuadrantWidget(QFrame):
         self._save_current_state()
 
     def _init_widgets(self):
-        """위젯 초기화"""
-        self.list_widget = QListWidget()
+        """위젯 초기화 (Drag&Drop 지원 커스텀 리스트 사용)"""
+        self.list_widget = EisenhowerQuadrantWidget.EisenhowerTaskListWidget(self)
         self.list_widget.setVerticalScrollMode(QListWidget.ScrollPerPixel)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
@@ -1635,12 +1694,12 @@ class MainWindow(QMainWindow):
         self.sidebar_layout = QVBoxLayout(self.sidebar)
         self.sidebar_layout.setContentsMargins(8, 8, 8, 8)
         self.sidebar_layout.setSpacing(4)
-        self.project_list_label = QLabel("프로젝트 목록:")
-        self.project_list_label.setStyleSheet(f"font-size: 10pt; color: {PRIMARY}; font-family: {FONT}; margin-bottom: 2px;")
-        self.sidebar_layout.addWidget(self.project_list_label)
+        # 상단 버튼/라벨 완전 제거
+        # 프로젝트 리스트
         self.project_list = ProjectListWidget(self)
-        self.project_list.setContextMenuPolicy(2)  # Qt.CustomContextMenu = 2
-        self.project_list.customContextMenuRequested.connect(self.show_project_context_menu)
+        self.project_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.project_list.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
+        self.project_list.viewport().customContextMenuRequested.connect(self.show_project_context_menu)
         self.project_list.currentItemChanged.connect(self.on_project_selection_changed)
         self.project_list.setHorizontalScrollBarPolicy(1)  # Qt.ScrollBarAlwaysOff = 1
         self.project_list.setWordWrap(False)
@@ -1670,7 +1729,6 @@ class MainWindow(QMainWindow):
         """)
         self.sidebar_layout.addWidget(self.project_list)
         self.sidebar_layout.addStretch()
-        
         # 사이드바 크기 설정
         self.sidebar.setMinimumWidth(150)
         self.sidebar.setMaximumWidth(200)
@@ -1772,19 +1830,18 @@ class MainWindow(QMainWindow):
             self.opacity_popup.show_at(cursor_pos)
 
     def show_project_context_menu(self, position):
+        item = self.project_list.itemAt(position)
         menu = QMenu()
         add_action = menu.addAction("새 프로젝트 추가")
-        rename_action = menu.addAction("이름 변경")
-        delete_action = menu.addAction("프로젝트 삭제")
-        # delete_file_action = menu.addAction("프로젝트 파일 삭제") # 추후 추가
-
-        action = menu.exec_(self.sidebar.mapToGlobal(position))
-
+        if item is not None:
+            rename_action = menu.addAction("이름 변경")
+            delete_action = menu.addAction("프로젝트 삭제")
+        action = menu.exec_(self.project_list.viewport().mapToGlobal(position))
         if action == add_action:
             self.add_new_project()
-        elif action == rename_action:
+        elif item is not None and action == rename_action:
             self.rename_selected_project()
-        elif action == delete_action:
+        elif item is not None and action == delete_action:
             self.delete_selected_project()
 
     def add_new_project(self):
