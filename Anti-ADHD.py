@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QSplitter, QListWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QLineEdit, QPushButton, QAction, QMenu, QGridLayout, QTextEdit, QInputDialog,
     QMessageBox, QFileDialog, QListWidgetItem, QDialog, QLabel, QCheckBox, QSlider, QStyle, QSizePolicy,
-    QTabWidget, QFormLayout, QToolButton, QFrame, QStatusBar, QShortcut, QDateTimeEdit, QAbstractItemView
+    QTabWidget, QFormLayout, QToolButton, QFrame, QStatusBar, QShortcut, QDateTimeEdit, QAbstractItemView,
+    QDialogButtonBox, QComboBox
 )
 from PyQt5.QtCore import Qt, QSettings, QUrl, QPoint, QSize, QTimer, QDateTime, QCoreApplication, QLocale
 from PyQt5.QtCore import QPropertyAnimation
@@ -17,7 +18,119 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
-# --- Qt 및 PyQt5 상수 대체값 정의 (파일 상단에 추가) ---
+# 번역 데이터
+TRANSLATIONS = {
+    "ko": {
+        "Language": "언어",
+        "Korean": "한국어",
+        "English": "영어",
+        "Settings": "설정",
+        "General": "일반",
+        "Appearance": "외관",
+        "Data": "데이터",
+        "About": "정보",
+        "Auto Save": "자동 저장",
+        "Check for Updates": "업데이트 확인",
+        "Data Directory": "데이터 디렉토리",
+        "Browse": "찾아보기",
+        "Backup": "백업",
+        "Restore": "복원",
+        "Reset": "초기화",
+        "Dark Mode": "다크 모드",
+        "Window Opacity": "창 투명도",
+        "Always on Top": "항상 위",
+        "Search": "검색",
+        "Search in Title": "제목에서 검색",
+        "Search in Details": "내용에서 검색",
+        "Include Completed": "완료된 항목 포함",
+        "Statistics": "통계",
+        "Export Report": "보고서 내보내기",
+        "Help": "도움말",
+        "Version": "버전",
+        "Developer": "개발자",
+        "License": "라이선스",
+        "File": "파일",
+        "New Project": "새 프로젝트",
+        "Import Project": "프로젝트 가져오기",
+        "Save Project": "프로젝트 저장",
+        "Save Project As": "다른 이름으로 저장",
+        "Exit": "종료",
+        "View": "보기",
+        "Show Main Toolbar": "메인 툴바 보이기",
+        "Show Search Toolbar": "검색 툴바 보이기",
+        "Edit": "편집",
+        "Add Task": "작업 추가",
+        "Edit Task": "작업 수정",
+        "Delete Task": "작업 삭제",
+        "Move Up": "위로 이동",
+        "Move Down": "아래로 이동",
+        "Tools": "도구",
+        "Task Statistics": "작업 통계",
+        "Export Report": "보고서 내보내기",
+        "Settings": "설정",
+        "Help": "도움말",
+        "About": "정보"
+    },
+    "en": {
+        "Language": "Language",
+        "Korean": "Korean",
+        "English": "English",
+        "Settings": "Settings",
+        "General": "General",
+        "Appearance": "Appearance",
+        "Data": "Data",
+        "About": "About",
+        "Auto Save": "Auto Save",
+        "Check for Updates": "Check for Updates",
+        "Data Directory": "Data Directory",
+        "Browse": "Browse",
+        "Backup": "Backup",
+        "Restore": "Restore",
+        "Reset": "Reset",
+        "Dark Mode": "Dark Mode",
+        "Window Opacity": "Window Opacity",
+        "Always on Top": "Always on Top",
+        "Search": "Search",
+        "Search in Title": "Search in Title",
+        "Search in Details": "Search in Details",
+        "Include Completed": "Include Completed",
+        "Statistics": "Statistics",
+        "Export Report": "Export Report",
+        "Help": "Help",
+        "Version": "Version",
+        "Developer": "Developer",
+        "License": "License",
+        "File": "File",
+        "New Project": "New Project",
+        "Import Project": "Import Project",
+        "Save Project": "Save Project",
+        "Save Project As": "Save Project As",
+        "Exit": "Exit",
+        "View": "View",
+        "Show Main Toolbar": "Show Main Toolbar",
+        "Show Search Toolbar": "Show Search Toolbar",
+        "Edit": "Edit",
+        "Add Task": "Add Task",
+        "Edit Task": "Edit Task",
+        "Delete Task": "Delete Task",
+        "Move Up": "Move Up",
+        "Move Down": "Move Down",
+        "Tools": "Tools",
+        "Task Statistics": "Task Statistics",
+        "Export Report": "Export Report",
+        "Settings": "Settings",
+        "Help": "Help",
+        "About": "About"
+    }
+}
+
+def tr(key):
+    """번역 함수"""
+    from PyQt5.QtCore import QSettings
+    lang = QSettings("anti_adhd_settings.ini", 1).value("general/language", "ko")
+    return TRANSLATIONS.get(lang, {}).get(key, key)
+
+# --- Qt 및 PyQt5 상수 대체값 정의 ---
 QT_CONST = {
     'AlignRight': 0x0002,
     'AlignLeft': 0x0001,
@@ -59,10 +172,13 @@ QT_CONST = {
     'transparent': 0,
     'MatchExactly': 0,
 }
+
 QSETTINGS_INIFMT = 1
 QFORMLAYOUT_WRAPALLROWS = 2
 
 # --- 유틸리티 함수 ---
+
+
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -71,6 +187,8 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 # --- 설정 대화상자 클래스 ---
+
+
 class SettingsDialog(QDialog):
     def __init__(self, current_data_dir, settings_file_path, parent=None):
         super().__init__(parent)
@@ -133,7 +251,8 @@ class SettingsDialog(QDialog):
         self.close_button = QPushButton("닫기")
         self.close_button.setMinimumWidth(80)
         self.close_button.setMaximumWidth(140)
-        self.close_button.setStyleSheet("QPushButton { font-size: 10pt; padding: 6px 0; border-radius: 6px; background: #1565c0; color: white; font-weight: bold; } QPushButton:hover { background: #1976d2; }")
+        self.close_button.setStyleSheet(
+            "QPushButton { font-size: 10pt; padding: 6px 0; border-radius: 6px; background: #1565c0; color: white; font-weight: bold; } QPushButton:hover { background: #1976d2; }")
         self.close_button.clicked.connect(self.accept_settings)
         button_layout.addWidget(self.close_button)
         main_layout.addLayout(button_layout)
@@ -149,59 +268,89 @@ class SettingsDialog(QDialog):
         layout.setSpacing(10)
         layout.setContentsMargins(16, 16, 16, 16)
 
+        # 언어 설정 그룹
+        lang_group = QGroupBox(tr("Language"))
+        lang_group.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        lang_layout = QHBoxLayout()
+        lang_layout.setSpacing(6)
+        lang_layout.setContentsMargins(10, 6, 10, 10)
+
+        self.lang_combo = QComboBox()
+        self.lang_combo.setStyleSheet("font-size: 9.5pt;")
+        self.lang_combo.addItem(tr("Korean"), "ko")
+        self.lang_combo.addItem(tr("English"), "en")
+        current_lang = self.settings.value("general/language", "ko")
+        index = self.lang_combo.findData(current_lang)
+        if index >= 0:
+            self.lang_combo.setCurrentIndex(index)
+        lang_layout.addWidget(QLabel(tr("Language") + ":"))
+        lang_layout.addWidget(self.lang_combo)
+        lang_group.setLayout(lang_layout)
+        layout.addWidget(lang_group)
+        self.lang_combo.currentIndexChanged.connect(self._on_language_changed)
+
         # 데이터 경로 설정 그룹
-        data_dir_group = QGroupBox("데이터 저장 경로")
-        data_dir_group.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        data_dir_group = QGroupBox(tr("Data Directory"))
+        data_dir_group.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         data_dir_group_layout = QVBoxLayout()
         data_dir_group_layout.setSpacing(6)
         data_dir_group_layout.setContentsMargins(10, 6, 10, 10)
-
         path_input_layout = QHBoxLayout()
-        self.data_dir_label = QLabel("현재 경로:")
+        self.data_dir_label = QLabel(tr("Current Path") + ":")
         self.data_dir_label.setStyleSheet("font-size: 9.5pt; color: #666;")
         self.data_dir_edit = QLineEdit(self.current_data_dir)
         self.data_dir_edit.setReadOnly(True)
-        self.browse_button = QPushButton("폴더 변경…")
+        self.browse_button = QPushButton(tr("Change Folder") + "...")
         self.browse_button.setMinimumWidth(80)
         self.browse_button.setMaximumWidth(140)
-        self.browse_button.setStyleSheet("QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+        self.browse_button.setStyleSheet(
+            "QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
         self.browse_button.clicked.connect(self.browse_data_directory)
         path_input_layout.addWidget(self.data_dir_label)
         path_input_layout.addWidget(self.data_dir_edit, 1)
         path_input_layout.addWidget(self.browse_button)
         data_dir_group_layout.addLayout(path_input_layout)
-        path_notice_label = QLabel("경로 변경 후 프로그램을 재시작해야 적용됩니다.")
+        path_notice_label = QLabel(tr("Restart the application after changing the path."))
         path_notice_label.setStyleSheet("font-size: 8.5pt; color: #aaa;")
         data_dir_group_layout.addWidget(path_notice_label, 0x0004)
         data_dir_group.setLayout(data_dir_group_layout)
         layout.addWidget(data_dir_group)
 
         # 자동 저장 그룹
-        auto_save_group = QGroupBox("자동 저장")
-        auto_save_group.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        auto_save_group = QGroupBox(tr("Auto Save"))
+        auto_save_group.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         auto_save_layout = QVBoxLayout()
         auto_save_layout.setContentsMargins(10, 6, 10, 10)
-        self.auto_save_checkbox = QCheckBox("애플리케이션 상태 자동 저장")
-        self.auto_save_checkbox.setChecked(self.settings.value("general/autoSaveEnabled", True, type=bool))
+        self.auto_save_checkbox = QCheckBox(tr("Auto Save Application State"))
+        self.auto_save_checkbox.setChecked(self.settings.value(
+            "general/auto_save", True, type=bool))
         self.auto_save_checkbox.setStyleSheet("font-size: 9.5pt;")
-        self.auto_save_checkbox.stateChanged.connect(self._on_auto_save_changed)
+        self.auto_save_checkbox.stateChanged.connect(
+            self._on_auto_save_changed)
         auto_save_layout.addWidget(self.auto_save_checkbox)
         auto_save_group.setLayout(auto_save_layout)
         layout.addWidget(auto_save_group)
 
         # 업데이트 그룹
-        update_group = QGroupBox("업데이트")
-        update_group.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        update_group = QGroupBox(tr("Updates"))
+        update_group.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         update_layout = QVBoxLayout()
         update_layout.setContentsMargins(10, 6, 10, 10)
-        self.check_updates_checkbox = QCheckBox("시작 시 업데이트 자동 확인")
-        self.check_updates_checkbox.setChecked(self.settings.value("general/checkUpdatesOnStart", True, type=bool))
+        self.check_updates_checkbox = QCheckBox(tr("Check for Updates on Startup"))
+        self.check_updates_checkbox.setChecked(self.settings.value(
+            "general/check_updates", True, type=bool))
         self.check_updates_checkbox.setStyleSheet("font-size: 9.5pt;")
-        self.check_updates_checkbox.stateChanged.connect(self._on_check_updates_changed)
-        self.check_now_button = QPushButton("지금 업데이트 확인")
+        self.check_updates_checkbox.stateChanged.connect(
+            self._on_check_updates_changed)
+        self.check_now_button = QPushButton(tr("Check for Updates Now"))
         self.check_now_button.setMinimumWidth(80)
         self.check_now_button.setMaximumWidth(140)
-        self.check_now_button.setStyleSheet("QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+        self.check_now_button.setStyleSheet(
+            "QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
         self.check_now_button.clicked.connect(self.perform_update_check)
         update_layout.addWidget(self.check_updates_checkbox)
         update_layout.addWidget(self.check_now_button, 0x0001)
@@ -209,18 +358,20 @@ class SettingsDialog(QDialog):
         layout.addWidget(update_group)
 
         # 데이터 관리 그룹
-        data_management_group = QGroupBox("데이터 관리")
-        data_management_group.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        data_management_group = QGroupBox(tr("Data Management"))
+        data_management_group.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         data_management_layout = QHBoxLayout()
         data_management_layout.setSpacing(8)
         data_management_layout.setContentsMargins(10, 8, 10, 10)
-        self.backup_data_button = QPushButton("데이터 백업…")
-        self.restore_data_button = QPushButton("데이터 복원…")
-        self.reset_data_button = QPushButton("데이터 초기화…")
+        self.backup_data_button = QPushButton(tr("Backup Data") + "...")
+        self.restore_data_button = QPushButton(tr("Restore Data") + "...")
+        self.reset_data_button = QPushButton(tr("Reset Data") + "...")
         for btn in [self.backup_data_button, self.restore_data_button, self.reset_data_button]:
             btn.setMinimumWidth(80)
             btn.setMaximumWidth(140)
-            btn.setStyleSheet("QPushButton { font-size: 9.5pt; padding: 5px 0; border-radius: 6px; background: #fff3e0; color: #e65100; font-weight: bold; } QPushButton:hover { background: #ffe0b2; }")
+            btn.setStyleSheet(
+                "QPushButton { font-size: 9.5pt; padding: 5px 0; border-radius: 6px; background: #fff3e0; color: #e65100; font-weight: bold; } QPushButton:hover { background: #ffe0b2; }")
         self.backup_data_button.clicked.connect(self.backup_data)
         self.restore_data_button.clicked.connect(self.restore_data)
         self.reset_data_button.clicked.connect(self.reset_data)
@@ -232,13 +383,22 @@ class SettingsDialog(QDialog):
         layout.addWidget(data_management_group)
         layout.addStretch()
 
+    def _on_language_changed(self, index):
+        """언어가 변경되었을 때 호출되는 함수"""
+        lang = self.lang_combo.itemData(index)
+        self.settings.setValue("general/language", lang)
+        # UI 업데이트를 위해 부모 윈도우에 알림
+        if self.parent():
+            self.parent().reload_data_and_ui()
+
     def setup_info_tab(self):
         layout = QVBoxLayout(self.info_tab)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
         # 프로그램 정보 섹션
         info_group_box = QGroupBox("프로그램 정보")
-        info_group_box.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        info_group_box.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         form_layout = QFormLayout()
         # form_layout.setLabelAlignment(0x0002)  # Qt.AlignRight (Enum 오류 방지)
         # form_layout.setRowWrapPolicy(2)  # QFormLayout.WrapAllRows (Enum 오류 방지)
@@ -253,7 +413,8 @@ class SettingsDialog(QDialog):
         form_layout.addRow(QLabel("이름:"), app_name_label)
         form_layout.addRow(QLabel("버전:"), QLabel("1.0.1"))
         form_layout.addRow(QLabel("개발자:"), QLabel("octaxii"))
-        github_link = QLabel("<a href=\"https://github.com/octaxii/Anti-ADHD\">GitHub 저장소</a>")
+        github_link = QLabel(
+            "<a href=\"https://github.com/octaxii/Anti-ADHD\">GitHub 저장소</a>")
         # github_link.setTextInteractionFlags(0x0001)  # Qt.TextBrowserInteraction (Enum 오류 방지)
         github_link.setOpenExternalLinks(True)
         form_layout.addRow(QLabel("GitHub:"), github_link)
@@ -261,12 +422,14 @@ class SettingsDialog(QDialog):
         layout.addWidget(info_group_box)
         # 라이선스 정보 섹션
         license_group_box = QGroupBox("라이선스")
-        license_group_box.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        license_group_box.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         license_layout = QVBoxLayout()
         license_layout.setContentsMargins(10, 6, 10, 10)
         self.license_text_edit = QTextEdit()
         self.license_text_edit.setReadOnly(True)
-        self.license_text_edit.setStyleSheet("font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        self.license_text_edit.setStyleSheet(
+            "font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
         mit_license_text = """
 MIT License
 
@@ -297,35 +460,38 @@ SOFTWARE.
         layout.addStretch()
 
     def browse_data_directory(self):
-        directory = QFileDialog.getExistingDirectory(self, "데이터 저장 폴더 선택", self.new_data_dir)
+        directory = QFileDialog.getExistingDirectory(
+            self, "데이터 저장 폴더 선택", self.new_data_dir)
         if directory and directory != self.current_data_dir:
             self.new_data_dir = directory
             self.data_dir_edit.setText(self.new_data_dir)
             # 경로 변경 시 즉시 알림은 여기서 하지 않고, "닫기" 누를 때 accept_settings에서 처리
 
     def _on_auto_save_changed(self, state):
-        self.settings.setValue("general/autoSaveEnabled", self.auto_save_checkbox.isChecked())
+        self.settings.setValue("general/auto_save",
+                               self.auto_save_checkbox.isChecked())
         self.settings.sync()
-        if self.main_window_ref: # MainWindow에 즉시 반영 (선택적)
+        if self.main_window_ref:  # MainWindow에 즉시 반영 (선택적)
             self.main_window_ref.auto_save_enabled = self.auto_save_checkbox.isChecked()
 
     def _on_check_updates_changed(self, state):
-        self.settings.setValue("general/checkUpdatesOnStart", self.check_updates_checkbox.isChecked())
+        self.settings.setValue("general/check_updates",
+                               self.check_updates_checkbox.isChecked())
         self.settings.sync()
 
     def accept_settings(self):
         # 데이터 경로 변경 사항이 있다면 저장하고 알림
         if self.new_data_dir != self.current_data_dir:
             self.settings.setValue("dataDir", self.new_data_dir)
-            self.current_data_dir = self.new_data_dir # 현재 대화상자 내의 current_data_dir도 업데이트
-            if self.main_window_ref: # MainWindow의 data_dir은 재시작 후 반영됨을 명심
-                 pass # MainWindow의 data_dir을 직접 바꾸는 것은 재시작 전에는 의미가 적을 수 있음
+            self.current_data_dir = self.new_data_dir  # 현재 대화상자 내의 current_data_dir도 업데이트
+            if self.main_window_ref:  # MainWindow의 data_dir은 재시작 후 반영됨을 명심
+                pass  # MainWindow의 data_dir을 직접 바꾸는 것은 재시작 전에는 의미가 적을 수 있음
             QMessageBox.information(self, "설정 변경",
                                     f"데이터 저장 경로가 다음으로 설정되었습니다:\\n'{self.new_data_dir}'\\n\\n애플리케이션을 재시작해야 변경 사항이 완전히 적용됩니다.")
         
         # 체크박스 값들은 이미 stateChanged 시그널에서 즉시 저장되었음
         # self.settings.sync() # 각 시그널 핸들러에서 이미 호출됨
-        self.accept() # QDialog.Accepted 상태로 다이얼로그 닫기
+        self.accept()  # QDialog.Accepted 상태로 다이얼로그 닫기
 
     def perform_update_check(self):
         QMessageBox.information(self, "업데이트 확인", "업데이트 확인 기능은 아직 구현되지 않았습니다.")
@@ -335,7 +501,8 @@ SOFTWARE.
         # SettingsDialog 생성 시 current_data_dir로 전달받음
         source_dir = self.current_data_dir 
         if not os.path.isdir(source_dir):
-            QMessageBox.warning(self, "백업 오류", f"데이터 디렉토리를 찾을 수 없습니다: {source_dir}")
+            QMessageBox.warning(
+                self, "백업 오류", f"데이터 디렉토리를 찾을 수 없습니다: {source_dir}")
             return
 
         # 백업 파일명 제안 (예: anti_adhd_backup_YYYYMMDD_HHMMSS.zip)
@@ -343,10 +510,11 @@ SOFTWARE.
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         suggested_filename = f"anti_adhd_backup_{timestamp}.zip"
 
-        file_path, _ = QFileDialog.getSaveFileName(self, "데이터 백업 파일 저장", suggested_filename, "ZIP 파일 (*.zip)")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "데이터 백업 파일 저장", suggested_filename, "ZIP 파일 (*.zip)")
 
         if not file_path:
-            return # 사용자가 취소
+            return  # 사용자가 취소
 
         try:
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -357,12 +525,14 @@ SOFTWARE.
                             # zip 파일 내에서는 source_dir 다음 경로만 유지 (상대 경로)
                             rel_path = os.path.relpath(abs_path, source_dir)
                             zf.write(abs_path, rel_path)
-            QMessageBox.information(self, "백업 성공", f"데이터가 다음 파일로 성공적으로 백업되었습니다:\n{file_path}")
+            QMessageBox.information(
+                self, "백업 성공", f"데이터가 다음 파일로 성공적으로 백업되었습니다:\n{file_path}")
         except Exception as e:
             QMessageBox.critical(self, "백업 실패", f"데이터 백업 중 오류가 발생했습니다:\n{e}")
 
     def restore_data(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "데이터 백업 파일 선택", "", "ZIP 파일 (*.zip)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "데이터 백업 파일 선택", "", "ZIP 파일 (*.zip)")
         if not file_path:
             return
 
@@ -383,7 +553,8 @@ SOFTWARE.
             try:
                 os.makedirs(target_dir)
             except OSError as e:
-                QMessageBox.critical(self, "복원 오류", f"데이터 디렉토리 생성 실패: {target_dir}\n{e}")
+                QMessageBox.critical(
+                    self, "복원 오류", f"데이터 디렉토리 생성 실패: {target_dir}\n{e}")
                 return
         
         # 기존 project_*.json 파일들을 먼저 삭제 (또는 백업)
@@ -395,7 +566,8 @@ SOFTWARE.
                     os.remove(os.path.join(target_dir, item))
                     cleaned_count += 1
                 except OSError as e:
-                    QMessageBox.warning(self, "복원 준비 오류", f"기존 프로젝트 파일 '{item}' 삭제 실패: {e}")
+                    QMessageBox.warning(
+                        self, "복원 준비 오류", f"기존 프로젝트 파일 '{item}' 삭제 실패: {e}")
                     # 실패해도 계속 진행할지, 중단할지 결정 필요. 여기서는 계속 진행.
         if cleaned_count > 0:
             print(f"{cleaned_count}개의 기존 프로젝트 파일을 삭제했습니다.")
@@ -403,14 +575,17 @@ SOFTWARE.
         try:
             with zipfile.ZipFile(file_path, 'r') as zf:
                 # zip 파일 내의 모든 project_*.json 파일만 압축 해제
-                project_files_in_zip = [name for name in zf.namelist() if name.startswith("project_") and name.endswith(".json")]
+                project_files_in_zip = [name for name in zf.namelist(
+                ) if name.startswith("project_") and name.endswith(".json")]
                 if not project_files_in_zip:
-                    QMessageBox.warning(self, "복원 오류", "선택한 ZIP 파일에 유효한 프로젝트 데이터(project_*.json)가 없습니다.")
+                    QMessageBox.warning(
+                        self, "복원 오류", "선택한 ZIP 파일에 유효한 프로젝트 데이터(project_*.json)가 없습니다.")
                     return
 
                 zf.extractall(target_dir, members=project_files_in_zip)
             
-            QMessageBox.information(self, "복원 성공", "데이터가 성공적으로 복원되었습니다. 애플리케이션 데이터를 새로고침합니다.")
+            QMessageBox.information(
+                self, "복원 성공", "데이터가 성공적으로 복원되었습니다. 애플리케이션 데이터를 새로고침합니다.")
             
             if self.main_window_ref and hasattr(self.main_window_ref, 'reload_data_and_ui'):
                 self.main_window_ref.reload_data_and_ui()
@@ -429,7 +604,8 @@ SOFTWARE.
 
         target_dir = self.current_data_dir
         if not os.path.isdir(target_dir):
-            QMessageBox.information(self, "데이터 초기화", "데이터 디렉토리가 이미 존재하지 않습니다. 초기화할 데이터가 없습니다.")
+            QMessageBox.information(
+                self, "데이터 초기화", "데이터 디렉토리가 이미 존재하지 않습니다. 초기화할 데이터가 없습니다.")
             # 이 경우에도 UI는 새로고침하여 빈 상태를 반영할 수 있도록 함
             if self.main_window_ref and hasattr(self.main_window_ref, 'reload_data_and_ui'):
                 self.main_window_ref.reload_data_and_ui()
@@ -448,12 +624,15 @@ SOFTWARE.
         
         if errors:
             error_message = "\n".join(errors)
-            QMessageBox.warning(self, "초기화 중 오류", f"일부 프로젝트 파일 삭제 중 오류가 발생했습니다:\n{error_message}")
+            QMessageBox.warning(
+                self, "초기화 중 오류", f"일부 프로젝트 파일 삭제 중 오류가 발생했습니다:\n{error_message}")
         else:
-            QMessageBox.information(self, "데이터 초기화 성공", f"{deleted_count}개의 프로젝트 파일이 성공적으로 삭제되었습니다. 애플리케이션 데이터를 새로고침합니다.")
+            QMessageBox.information(
+                self, "데이터 초기화 성공", f"{deleted_count}개의 프로젝트 파일이 성공적으로 삭제되었습니다. 애플리케이션 데이터를 새로고침합니다.")
 
         if self.main_window_ref and hasattr(self.main_window_ref, 'reload_data_and_ui'):
             self.main_window_ref.reload_data_and_ui()
+
 
 class ProjectListWidget(QListWidget):
     def __init__(self, main_window, *args, **kwargs):
@@ -481,7 +660,8 @@ class ProjectListWidget(QListWidget):
         """)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
-        self.viewport().customContextMenuRequested.connect(self.main_window.show_project_context_menu)
+        self.viewport().customContextMenuRequested.connect(
+            self.main_window.show_project_context_menu)
         
     def showEvent(self, event):
         super().showEvent(event)
@@ -502,7 +682,8 @@ class ProjectListWidget(QListWidget):
         if item:
             self.setCurrentItem(item)
             # 메인 윈도우의 프로젝트 선택 이벤트 발생
-            self.main_window.on_project_selection_changed(item, self.currentItem())
+            self.main_window.on_project_selection_changed(
+                item, self.currentItem())
             
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
@@ -510,7 +691,9 @@ class ProjectListWidget(QListWidget):
         if event.key() in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Home, Qt.Key_End):
             current_item = self.currentItem()
             if current_item:
-                self.main_window.on_project_selection_changed(current_item, None)
+                self.main_window.on_project_selection_changed(
+                    current_item, None)
+
 
 class EisenhowerQuadrantWidget(QFrame):
     class EisenhowerTaskListWidget(QListWidget):
@@ -532,13 +715,15 @@ class EisenhowerQuadrantWidget(QFrame):
             idx = self.row(item)
             item_data = self.parent_quadrant.items[idx]
             mime = super().mimeData(items)
-            mime.setData('application/x-antiadhd-task', json.dumps(item_data).encode('utf-8'))
+            mime.setData('application/x-antiadhd-task',
+                         json.dumps(item_data).encode('utf-8'))
             return mime
 
         def dropMimeData(self, index, data, action):
             if data.hasFormat('application/x-antiadhd-task'):
                 try:
-                    item_data = json.loads(bytes(data.data('application/x-antiadhd-task')).decode('utf-8'))
+                    item_data = json.loads(
+                        bytes(data.data('application/x-antiadhd-task')).decode('utf-8'))
                 except Exception as e:
                     print(f"[DEBUG] 드롭 데이터 역직렬화 오류: {e}")
                     return False
@@ -572,6 +757,7 @@ class EisenhowerQuadrantWidget(QFrame):
         self.icon = icon
         self.main_window = main_window_ref
         self.items = []
+        self._test_mode = False  # 테스트 자동 입력 모드
         
         # 색상 계산
         from PyQt5.QtGui import QColor
@@ -601,7 +787,8 @@ class EisenhowerQuadrantWidget(QFrame):
             item.setForeground(QColor("#000000"))
             item.setFont(QFont("Helvetica", 9, QFont.Weight.Normal))
         if self.items[idx]["details"]:
-            item.setToolTip(f"{self.items[idx]['title']}\n\n{self.items[idx]['details']}")
+            item.setToolTip(
+                f"{self.items[idx]['title']}\n\n{self.items[idx]['details']}")
         else:
             item.setToolTip(self.items[idx]["title"])
         # self._reorder_items() 호출 제거 (참조 오류 방지)
@@ -625,7 +812,8 @@ class EisenhowerQuadrantWidget(QFrame):
             if "tasks" in project_data and len(project_data["tasks"]) > quadrant_idx:
                 project_data["tasks"][quadrant_idx] = self.items
                 # 즉시 파일에 저장
-                self.main_window.save_project_to_file(self.main_window.current_project_name)
+                self.main_window.save_project_to_file(
+                    self.main_window.current_project_name)
                 
     def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
         """항목을 리스트에 추가합니다."""
@@ -633,50 +821,77 @@ class EisenhowerQuadrantWidget(QFrame):
             # 항목 데이터 검증
             if not isinstance(item_data, dict):
                 raise ValueError("item_data must be a dictionary")
-            
+
             # 필수 키 검증
-            required_keys = ['title', 'completed', 'priority', 'due_date', 'details', 'created_at', 'updated_at']
+            required_keys = ['title', 'completed', 'priority',
+                'due_date', 'details', 'created_at', 'updated_at']
             if not all(key in item_data for key in required_keys):
-                raise ValueError(f"item_data must contain all required keys: {required_keys}")
-            
+                raise ValueError(
+                    f"item_data must contain all required keys: {required_keys}")
+
             # 항목 생성 및 설정
             item = QListWidgetItem()
-            item.setData(Qt.UserRole, item_data)
             
+            # 데이터 설정
+            item.setData(Qt.UserRole, item_data)
+
             # 폰트 설정
             font = QFont()
             font.setPointSize(10)
             item.setFont(font)
-            
+
             # 체크박스 설정
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Checked if item_data['completed'] else Qt.Unchecked)
-            
+            item.setCheckState(
+                Qt.Checked if item_data['completed'] else Qt.Unchecked)
+
             # 텍스트 설정
             item.setText(self.render_task_title_with_emoji(item_data))
-            
+
+            # 체크 상태에 따라 스타일 적용
+            if item_data['completed']:
+                item.setForeground(QColor("#666666"))
+                font = QFont("Helvetica", 9, QFont.Weight.Normal)
+                font.setStrikeOut(True)
+                item.setFont(font)
+            else:
+                item.setForeground(QColor("#000000"))
+                font = QFont("Helvetica", 9, QFont.Weight.Normal)
+                font.setStrikeOut(False)
+                item.setFont(font)
+
+            # 툴팁 설정
+            if item_data['details']:
+                item.setToolTip(f"{item_data['title']}\n\n{item_data['details']}")
+            else:
+                item.setToolTip(item_data['title'])
+
             # 항목 추가
             if idx is not None:
                 self.list_widget.insertItem(idx, item)
             else:
                 self.list_widget.addItem(item)
             
-            # 항목 데이터 저장
-            self.items.append(item_data)
-            
+            # 항목 데이터 저장 (UI만 업데이트하는 경우가 아닐 때만)
+            if not hasattr(self, '_skip_items_append'):
+                self.items.append(item_data)
+
             # 항목 변경 시그널 연결
             item.setData(Qt.UserRole + 1, True)  # 변경 플래그 설정
-            
+
             # 항목 선택
             self.list_widget.setCurrentItem(item)
-            
+
             # 항목 추가 애니메이션
             self._animate_add(item)
-            
+
         except Exception as e:
             print(f"Error in _add_list_item: {str(e)}")
+            # 에러 발생 시 메모리 정리
+            if 'item' in locals():
+                del item
             raise
-
+            
     def _reorder_items(self):
         """체크된 항목을 하단으로 이동"""
         # 체크되지 않은 항목과 체크된 항목 분리
@@ -709,7 +924,8 @@ class EisenhowerQuadrantWidget(QFrame):
 
     def _init_widgets(self):
         """위젯 초기화 (Drag&Drop 지원 커스텀 리스트 사용)"""
-        self.list_widget = EisenhowerQuadrantWidget.EisenhowerTaskListWidget(self)
+        self.list_widget = EisenhowerQuadrantWidget.EisenhowerTaskListWidget(
+            self)
         self.list_widget.setVerticalScrollMode(QListWidget.ScrollPerPixel)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
@@ -840,7 +1056,8 @@ class EisenhowerQuadrantWidget(QFrame):
         """레이아웃 설정 (여백/간격 최소화)"""
         title_layout = QHBoxLayout()
         title_label = QLabel(self.keyword)
-        title_label.setStyleSheet(f"font-size: 10.5pt; font-weight: bold; color: {self.color}; margin-bottom: 0px;")
+        title_label.setStyleSheet(
+            f"font-size: 10.5pt; font-weight: bold; color: {self.color}; margin-bottom: 0px;")
         if self.icon:
             icon_label = QLabel()
             icon_label.setPixmap(self.icon.pixmap(15, 15))
@@ -850,7 +1067,8 @@ class EisenhowerQuadrantWidget(QFrame):
         title_layout.setSpacing(4)
         title_layout.setContentsMargins(2, 2, 2, 0)
         desc_label = QLabel(self.description)
-        desc_label.setStyleSheet("font-size: 8.5pt; color: #666; margin-bottom: 2px;")
+        desc_label.setStyleSheet(
+            "font-size: 8.5pt; color: #666; margin-bottom: 2px;")
         input_layout = QHBoxLayout()
         input_layout.setContentsMargins(1, 1, 1, 1)
         input_layout.setSpacing(2)
@@ -870,8 +1088,10 @@ class EisenhowerQuadrantWidget(QFrame):
         self.add_button.clicked.connect(self.add_task)
         self.input_field.returnPressed.connect(self.add_task)  # 엔터키로 추가
         self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
+        self.list_widget.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(
+            self.show_context_menu)
         # 체크박스 상태 변경 이벤트 연결
         self.list_widget.itemChanged.connect(self._on_item_changed)
         
@@ -913,7 +1133,8 @@ class EisenhowerQuadrantWidget(QFrame):
             title = item_data["title"]
             item = QListWidgetItem(title)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+            item.setCheckState(
+                Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
             
             # 체크 상태에 따라 스타일 적용
             if item_data["checked"]:
@@ -941,7 +1162,8 @@ class EisenhowerQuadrantWidget(QFrame):
             
         item = QListWidgetItem(title)
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+        item.setCheckState(
+            Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
         
         if idx is not None:
             self.list_widget.insertItem(idx, item)
@@ -975,29 +1197,52 @@ class EisenhowerQuadrantWidget(QFrame):
         self._fade_animation.start()
         
     def add_task(self) -> None:
-        """새로운 작업을 추가합니다."""
+        """새 작업 추가"""
         try:
-            # 기본 작업 데이터 생성
-            item_data = {
-                'title': '',
-                'completed': False,
-                'priority': 0,
-                'due_date': None,
+            # 입력 필드에서 타이틀 가져오기
+            title = self.input_field.text().strip()
+            if not title:  # 타이틀이 비어있으면 추가하지 않음
+                return
+                
+            # 새 작업 데이터 생성
+            new_item = {
+                'title': title,
                 'details': '',
+                'checked': False,
+                'completed': False,  # checked와 동기화
+                'priority': 0,  # 우선순위 추가
+                'due_date': None,
                 'created_at': datetime.now().isoformat(),
                 'updated_at': datetime.now().isoformat()
             }
             
-            # 작업 편집 다이얼로그 표시
-            if self.edit_task_dialog(0, None, item_data):
-                # 항목 추가
-                self._add_list_item(item_data)
-                # 상태 저장
-                self._save_current_state()
-                
+            # 데이터 리스트에 추가
+            self.items.append(new_item)
+            
+            # UI 업데이트 전에 시그널 차단
+            self.list_widget.blockSignals(True)
+            try:
+                # UI에 아이템 추가
+                self._add_list_item(new_item)
+                # 새로 추가된 아이템 선택
+                last_item = self.list_widget.item(self.list_widget.count() - 1)
+                if last_item:
+                    self.list_widget.setCurrentItem(last_item)
+            finally:
+                # 시그널 차단 해제
+                self.list_widget.blockSignals(False)
+            
+            # 상태 저장
+            self._save_current_state()
+            
         except Exception as e:
             print(f"Error in add_task: {str(e)}")
-            QMessageBox.critical(self, "오류", f"작업 추가 중 오류가 발생했습니다: {str(e)}")
+            # 에러 발생 시 UI 상태 복구
+            self.list_widget.blockSignals(False)
+            # 마지막으로 추가된 아이템이 있다면 제거
+            if self.items and len(self.items) > 0:
+                self.items.pop()
+            self.load_tasks(self.items)  # 현재 데이터로 UI 재구성
 
     def on_item_double_clicked(self, item) -> None:
         idx = self.list_widget.row(item)
@@ -1022,7 +1267,8 @@ class EisenhowerQuadrantWidget(QFrame):
             if quad != self:  # 현재 사분면 제외
                 action = move_menu.addAction(quadrant_meanings[i])
                 # item_data만 넘기도록 수정
-                action.triggered.connect(lambda checked, target_quad=quad, item_data=self.items[self.list_widget.row(item)].copy(): self._move_item_data_to_quadrant(item_data, target_quad))
+                action.triggered.connect(lambda checked, target_quad=quad, item_data=self.items[self.list_widget.row(
+                    item)].copy(): self._move_item_data_to_quadrant(item_data, target_quad))
         edit_action = menu.addAction("수정")
         delete_action = menu.addAction("삭제")
         action = menu.exec(self.list_widget.mapToGlobal(position))
@@ -1044,8 +1290,8 @@ class EisenhowerQuadrantWidget(QFrame):
                 break
         if idx is not None:
             self.list_widget.takeItem(idx)
-            self.items.pop(idx)
-        # 대상 사분면에 아이템 추가 (중복 append 방지)
+        self.items.pop(idx)
+            # 대상 사분면에 아이템 추가 (중복 append 방지)
         target_quadrant.items.append(item_data)
         target_quadrant._add_list_item(item_data)
         quadrant_meanings = {
@@ -1054,7 +1300,8 @@ class EisenhowerQuadrantWidget(QFrame):
             2: "긴급",
             3: "중요X/긴급X"
         }
-        target_idx = self.main_window.quadrant_widgets.index(target_quadrant)
+        target_idx = self.main_window.quadrant_widgets.index(
+                target_quadrant)
         if self.main_window:
             self.main_window.statusBar().showMessage(
                 f"'{item_data['title']}'을(를) {quadrant_meanings[target_idx]}로 이동했습니다.",
@@ -1063,26 +1310,29 @@ class EisenhowerQuadrantWidget(QFrame):
         self._save_current_state()
         target_quadrant._save_current_state()
 
-    def edit_task_dialog(self, idx, item):
+    def edit_task_dialog(self, idx, item, item_data=None):
+        if getattr(self, '_test_mode', False):
+            return True
         from PyQt5.QtWidgets import QDateTimeEdit, QCheckBox, QGridLayout
         from PyQt5.QtCore import QDateTime, QLocale
         dialog = QDialog(self)
         dialog.setWindowTitle("항목 수정")
         layout = QVBoxLayout(dialog)
-        title_edit = QLineEdit(self.items[idx]["title"])
-        details_edit = QTextEdit(self.items[idx]["details"])
+        data = item_data if item_data is not None else (
+            self.items[idx] if idx is not None and idx < len(self.items) else None)
+        if data is None:
+            return False
+        title_edit = QLineEdit(data["title"])
+        details_edit = QTextEdit(data["details"])
         layout.addWidget(QLabel("제목:"))
         layout.addWidget(title_edit)
         layout.addWidget(QLabel("세부 내용:"))
         layout.addWidget(details_edit)
-        # 마감일
         due_label = QLabel("마감일:")
         due_edit = QDateTimeEdit()
         due_edit.setCalendarPopup(True)
-        due_edit.setDisplayFormat("yyyy년 MM월 dd일 HH:mm")  # 년, 월, 일 한글로
-        # 달력 로케일 한글로 강제 지정
+        due_edit.setDisplayFormat("yyyy년 MM월 dd일 HH:mm")
         due_edit.setLocale(QLocale(QLocale.Korean, QLocale.SouthKorea))
-        # 밝은 달력 스타일 적용 (명확히 추가)
         due_edit.setStyleSheet("""
             QDateTimeEdit, QCalendarWidget, QToolButton {
                 background: #fff;
@@ -1099,14 +1349,13 @@ class EisenhowerQuadrantWidget(QFrame):
                 selection-color: #1976d2;
             }
         """)
-        # 달력 팝업 크기 및 위쪽 화살표 숨기기
         calendar = due_edit.calendarWidget()
         if calendar:
             calendar.setMinimumHeight(260)
             calendar.setMaximumHeight(260)
             calendar.setMinimumWidth(320)
             calendar.setMaximumWidth(320)
-            calendar.setLocale(QLocale(QLocale.Korean, QLocale.SouthKorea))  # 달력 헤더도 한글로
+            calendar.setLocale(QLocale(QLocale.Korean, QLocale.SouthKorea))
             calendar.setStyleSheet(
                 """
 QCalendarWidget QWidget {
@@ -1179,21 +1428,22 @@ QCalendarWidget QHeaderView {
                 """
             )
         due_none_cb = QCheckBox("마감일 없음")
-        if self.items[idx].get("due_date"):
-            due_edit.setDateTime(QDateTime.fromString(self.items[idx]["due_date"], "yyyy-MM-dd HH:mm"))
+        if data.get("due_date"):
+            due_edit.setDateTime(QDateTime.fromString(
+                data["due_date"], "yyyy-MM-dd HH:mm"))
             due_none_cb.setChecked(False)
             due_edit.setEnabled(True)
         else:
             due_edit.setDateTime(QDateTime.currentDateTime())
             due_none_cb.setChecked(True)
             due_edit.setEnabled(False)
+
         def on_due_none_changed(state):
             due_edit.setEnabled(not due_none_cb.isChecked())
         due_none_cb.stateChanged.connect(on_due_none_changed)
         layout.addWidget(due_label)
         layout.addWidget(due_edit)
         layout.addWidget(due_none_cb)
-        # 알림 시점
         reminder_label = QLabel("알림 시점:")
         reminder_grid = QGridLayout()
         reminder_options = [
@@ -1206,22 +1456,21 @@ QCalendarWidget QHeaderView {
         reminder_checks = []
         for i, (label, minutes) in enumerate(reminder_options):
             cb = QCheckBox(label)
-            if minutes in self.items[idx].get("reminders", []):
+            if minutes in data.get("reminders", []):
                 cb.setChecked(True)
             reminder_checks.append((cb, minutes))
             reminder_grid.addWidget(cb, i // 3, i % 3)
         layout.addWidget(reminder_label)
         layout.addLayout(reminder_grid)
-        # 버튼
         button_layout = QHBoxLayout()
         ok_btn = QPushButton("확인")
         cancel_btn = QPushButton("취소")
         button_layout.addWidget(ok_btn)
         button_layout.addWidget(cancel_btn)
         layout.addLayout(button_layout)
-        ok_btn.clicked.connect(dialog.accept)
-        cancel_btn.clicked.connect(dialog.reject)
-        if dialog.exec_() == QDialog.Accepted:
+        def save_and_accept():
+            title_edit.clearFocus()
+            details_edit.clearFocus()
             new_title = title_edit.text().strip()
             new_details = details_edit.toPlainText().strip()
             if due_none_cb.isChecked():
@@ -1230,16 +1479,27 @@ QCalendarWidget QHeaderView {
                 due_dt = due_edit.dateTime().toString("yyyy-MM-dd HH:mm")
             reminders = [minutes for cb, minutes in reminder_checks if cb.isChecked()]
             if new_title:
-                self.items[idx]["title"] = new_title
-                self.items[idx]["details"] = new_details
-                self.items[idx]["due_date"] = due_dt
-                self.items[idx]["reminders"] = reminders
-                if "due_date" not in self.items[idx]:
-                    self.items[idx]["due_date"] = None
-                if "reminders" not in self.items[idx]:
-                    self.items[idx]["reminders"] = []
-                # self._update_list_item(item, idx) 완전 제거
+                data["title"] = new_title
+                data["details"] = new_details
+                data["due_date"] = due_dt
+                data["reminders"] = reminders
+                if "due_date" not in data:
+                    data["due_date"] = None
+                if "reminders" not in data:
+                    data["reminders"] = []
+                if "checked" in data:
+                    data["completed"] = data["checked"]
+                elif "completed" in data:
+                    data["checked"] = data["completed"]
                 self._reorder_items()
+            dialog.accept()
+        try:
+            ok_btn.clicked.disconnect()
+        except Exception:
+            pass
+        ok_btn.clicked.connect(save_and_accept)
+        cancel_btn.clicked.connect(dialog.reject)
+        dialog.exec_()
 
     def clear_tasks(self):
         self.items = []
@@ -1250,21 +1510,30 @@ QCalendarWidget QHeaderView {
         self.items = list(tasks_list)  # 복사본 사용
         self.list_widget.blockSignals(True)
         self.list_widget.clear()
-        for item_data in self.items:
-            self._add_list_item(item_data)
-        self.list_widget.blockSignals(False)
         
+        # UI만 업데이트하는 경우임을 표시
+        self._skip_items_append = True
+        try:
+            for item_data in self.items:
+                self._add_list_item(item_data)
+        finally:
+            # 플래그 제거
+            delattr(self, '_skip_items_append')
+            
+        self.list_widget.blockSignals(False)
+
     def _add_list_item(self, item_data: dict, idx: Optional[int] = None) -> None:
         """리스트에 새 항목 추가 (UI만, self.items에는 append하지 않음)"""
         title = self.render_task_title_with_emoji(item_data)
         item = QListWidgetItem(title)
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-        item.setCheckState(Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
+        item.setCheckState(
+                Qt.CheckState.Checked if item_data["checked"] else Qt.CheckState.Unchecked)
         if idx is not None:
             self.list_widget.insertItem(idx, item)
         else:
             self.list_widget.addItem(item)
-        # 체크 상태에 따라 스타일만 변경, 텍스트는 항상 동일
+        # 체크 상태에 따라 스타일 적용
         if item_data["checked"]:
             item.setForeground(QColor("#666666"))
             font = QFont("Helvetica", 9, QFont.Weight.Normal)
@@ -1276,9 +1545,9 @@ QCalendarWidget QHeaderView {
             font.setStrikeOut(False)
             item.setFont(font)
         if item_data["details"]:
-            item.setToolTip(f"{item_data['title']}\n\n{item_data['details']}")
+                item.setToolTip(f"{item_data['title']}\n\n{item_data['details']}")
         else:
-            item.setToolTip(item_data["title"])
+                item.setToolTip(item_data["title"])
 
     def render_task_title_with_emoji(self, item_data):
         title = item_data.get("title", "")
@@ -1291,7 +1560,10 @@ QCalendarWidget QHeaderView {
         # 마감일 있으면 D-xx
         if due_date:
             try:
-                due_dt = datetime.strptime(due_date, "%Y-%m-%d %H:%M")
+                try:
+                    due_dt = datetime.strptime(due_date, "%Y-%m-%d %H:%M")
+                except ValueError:
+                    due_dt = datetime.fromisoformat(due_date)
                 days_left = (due_dt.date() - datetime.now().date()).days
                 if days_left > 0:
                     parts.append(f"D-{days_left}")
@@ -1315,34 +1587,54 @@ QCalendarWidget QHeaderView {
         # 텍스트는 항상 render_task_title_with_emoji로
         item.setText(self.render_task_title_with_emoji(self.items[idx]))
         if is_checked:
-            item.setForeground(QColor("#666666"))
-            font = QFont("Helvetica", 9, QFont.Weight.Normal)
-            font.setStrikeOut(True)
-            item.setFont(font)
+                item.setForeground(QColor("#666666"))
+                font = QFont("Helvetica", 9, QFont.Weight.Normal)
+                font.setStrikeOut(True)
+                item.setFont(font)
         else:
             item.setForeground(QColor("#000000"))
             font = QFont("Helvetica", 9, QFont.Weight.Normal)
             font.setStrikeOut(False)
             item.setFont(font)
         if self.items[idx]["details"]:
-            item.setToolTip(f"{self.items[idx]['title']}\n\n{self.items[idx]['details']}")
+            item.setToolTip(
+                f"{self.items[idx]['title']}\n\n{self.items[idx]['details']}")
         else:
             item.setToolTip(self.items[idx]["title"])
-        self._save_current_state()
-
+            self._save_current_state()
+            
     def _reorder_items(self):
         """체크된 항목을 하단으로 이동, UI와 데이터 완전 동기화"""
-        # 데이터만 재정렬
-        unchecked_items = [d for d in self.items if not d["checked"]]
-        checked_items = [d for d in self.items if d["checked"]]
-        self.items = unchecked_items + checked_items
-        # UI 재생성
-        self.list_widget.blockSignals(True)
-        self.list_widget.clear()
-        for item_data in self.items:
-            self._add_list_item(item_data)
-        self.list_widget.blockSignals(False)
-        self._save_current_state()
+        try:
+            # 데이터만 재정렬
+            unchecked_items = [d for d in self.items if not d.get("checked", False)]
+            checked_items = [d for d in self.items if d.get("checked", False)]
+            self.items = unchecked_items + checked_items
+            
+            # UI 재생성
+            self.list_widget.blockSignals(True)
+            self.list_widget.clear()
+            
+            # UI만 업데이트하는 경우임을 표시
+            self._skip_items_append = True
+            try:
+                # 아이템 추가
+                for item_data in self.items:
+                    self._add_list_item(item_data)
+            finally:
+                # 플래그 제거
+                delattr(self, '_skip_items_append')
+                
+            self.list_widget.blockSignals(False)
+            self._save_current_state()
+            
+        except Exception as e:
+            print(f"Error in _reorder_items: {str(e)}")
+            # 에러 발생 시 UI 상태 복구
+            self.list_widget.blockSignals(False)
+            if hasattr(self, '_skip_items_append'):
+                delattr(self, '_skip_items_append')
+            self.load_tasks(self.items)  # 현재 데이터로 UI 재구성
 
     def load_tasks(self, tasks_list):
         """태스크 목록 로드 (데이터와 UI 완전 동기화)"""
@@ -1352,6 +1644,7 @@ QCalendarWidget QHeaderView {
         for item_data in self.items:
             self._add_list_item(item_data)
         self.list_widget.blockSignals(False)
+        
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1359,7 +1652,8 @@ class MainWindow(QMainWindow):
         self.settings_file = "anti_adhd_settings.ini"
         
         # 절대 경로로 변경 (AppData/Local 사용)
-        app_data_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Anti-ADHD')
+        app_data_dir = os.path.join(
+            os.environ.get('LOCALAPPDATA', ''), 'Anti-ADHD')
         self.data_dir = os.path.join(app_data_dir, 'data')
         print(f"[DEBUG] 초기화: 데이터 디렉토리 = {self.data_dir}")
         
@@ -1400,12 +1694,15 @@ class MainWindow(QMainWindow):
         self.current_project_name = None
         self.load_all_projects()
         self.select_initial_project()
-        
+
         # 사이드바 초기 상태 설정
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
         sidebar_visible = settings.value("sidebarVisible", False, type=bool)
         self.sidebar.setVisible(sidebar_visible)
         self.update_sidebar_toggle_icon()
+
+        self.is_test_mode = False  # 테스트 모드 플래그 추가
+        self.dark_mode = False  # 다크 모드 상태 초기화
 
     def setup_shortcuts(self):
         """키보드 단축키 설정"""
@@ -1420,7 +1717,8 @@ class MainWindow(QMainWindow):
         QShortcut(Qt.CTRL + Qt.Key_B, self, self.toggle_sidebar)
         
         # 항목 관련
-        QShortcut(Qt.CTRL + Qt.Key_Return, self, self.add_task_to_current_quadrant)
+        QShortcut(Qt.CTRL + Qt.Key_Return, self,
+                  self.add_task_to_current_quadrant)
         QShortcut(Qt.CTRL + Qt.Key_Up, self, self.move_selected_task_up)
         QShortcut(Qt.CTRL + Qt.Key_Down, self, self.move_selected_task_down)
         
@@ -1428,8 +1726,10 @@ class MainWindow(QMainWindow):
         QShortcut(Qt.CTRL + Qt.Key_Comma, self, self.open_settings_dialog)
         QShortcut(Qt.CTRL + Qt.Key_Z, self, self.restore_from_backup)
         
-        QShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_B, self, self.toggle_main_toolbar)
-        QShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_F, self, self.toggle_search_toolbar)
+        QShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_B,
+                  self, self.toggle_main_toolbar)
+        QShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_F,
+                  self, self.toggle_search_toolbar)
         
     def add_task_to_current_quadrant(self):
         """현재 선택된 사분면에 새 항목 추가"""
@@ -1527,24 +1827,12 @@ class MainWindow(QMainWindow):
         return data
         
     def force_adjust_sidebar_width(self):
-        self.adjust_sidebar_width()
-        QApplication.processEvents()
-        QTimer.singleShot(0, self.adjust_sidebar_width)
-        QTimer.singleShot(50, self.adjust_sidebar_width)
-        QTimer.singleShot(200, self.adjust_sidebar_width)
-        QTimer.singleShot(500, self.adjust_sidebar_width)
+        """사이드바 너비 강제 조정 (더 이상 사용하지 않음)"""
+        pass  # 고정 너비를 사용하므로 이 메서드는 더 이상 필요하지 않음
 
     def adjust_sidebar_width(self):
-        min_width = 100
-        max_width = 300
-        QApplication.processEvents()
-        max_width_item = min_width
-        for i in range(self.project_list.count()):
-            rect = self.project_list.visualItemRect(self.project_list.item(i))
-            if rect.width() > max_width_item:
-                max_width_item = rect.width()
-        width = min(max(min_width, max_width_item + 32), max_width)
-        self.sidebar.setFixedWidth(width)
+        """사이드바 너비 조정 (더 이상 사용하지 않음)"""
+        pass  # 고정 너비를 사용하므로 이 메서드는 더 이상 필요하지 않음
 
     def init_ui(self):
         self.setWindowTitle("Anti-ADHD (Eisenhower Matrix)")
@@ -1594,7 +1882,8 @@ class MainWindow(QMainWindow):
         self.toggle_searchbar_action.setChecked(True)
         self.toggle_searchbar_action.setShortcut("Ctrl+Shift+F")
         self.toggle_searchbar_action.setToolTip("검색 툴바 보이기/숨기기 (Ctrl+Shift+F)")
-        self.toggle_searchbar_action.triggered.connect(self.toggle_search_toolbar)
+        self.toggle_searchbar_action.triggered.connect(
+            self.toggle_search_toolbar)
         view_menu.addAction(self.toggle_searchbar_action)
         
         # 통계 메뉴
@@ -1661,13 +1950,15 @@ class MainWindow(QMainWindow):
         
         # --- 툴바 액션 인스턴스 생성 및 설정 ---
         self.toggle_sidebar_action = QAction(self)
-        self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+        self.toggle_sidebar_action.setIcon(
+            self.style().standardIcon(QStyle.SP_ArrowLeft))
         self.toggle_sidebar_action.setToolTip("프로젝트 목록 보이기/숨기기")
         self.toggle_sidebar_action.triggered.connect(self.toggle_sidebar)
         
         self.dark_mode_action = QAction(self)
         self.dark_mode_action.setCheckable(True)
-        self.dark_mode_action.setIcon(self.style().standardIcon(QStyle.SP_DialogResetButton))
+        self.dark_mode_action.setIcon(
+            self.style().standardIcon(QStyle.SP_DialogResetButton))
         self.dark_mode_action.setToolTip("다크 모드 전환")
         self.dark_mode_action.triggered.connect(self.toggle_dark_mode)
         
@@ -1676,10 +1967,12 @@ class MainWindow(QMainWindow):
         self.update_always_on_top_icon()
         self.always_on_top_action.triggered.connect(self.toggle_always_on_top)
         
-        settings_toolbar_icon = self.style().standardIcon(QStyle.SP_FileDialogDetailedView)
+        settings_toolbar_icon = self.style().standardIcon(
+            QStyle.SP_FileDialogDetailedView)
         self.settings_toolbar_action = QAction(settings_toolbar_icon, "", self)
         self.settings_toolbar_action.setToolTip("애플리케이션 설정 열기")
-        self.settings_toolbar_action.triggered.connect(self.open_settings_dialog)
+        self.settings_toolbar_action.triggered.connect(
+            self.open_settings_dialog)
         
         # --- 툴바 액션 추가 ---
         self.toolbar.addAction(self.toggle_sidebar_action)
@@ -1692,16 +1985,44 @@ class MainWindow(QMainWindow):
         self.sidebar = QFrame()
         self.sidebar.setObjectName("sidebar")
         self.sidebar_layout = QVBoxLayout(self.sidebar)
-        self.sidebar_layout.setContentsMargins(8, 8, 8, 8)
-        self.sidebar_layout.setSpacing(4)
+        self.sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        self.sidebar_layout.setSpacing(0)
         # 상단 버튼/라벨 완전 제거
         # 프로젝트 리스트
         self.project_list = ProjectListWidget(self)
+        self.project_list.setFixedWidth(200)  # 사이드바 고정 너비
+        self.project_list.setFixedHeight(525)  # 사이드바 고정 높이
+        self.project_list.setStyleSheet("""
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 8px;
+                margin: 2px 4px;
+                border-radius: 4px;
+                color: #333333;
+                height: 30px;  /* 아이템 높이 고정 */
+                min-height: 30px;  /* 최소 높이 설정 */
+                max-height: 30px;  /* 최대 높이 설정 */
+            }
+            QListWidget::item:selected {
+                background-color: #e0e0e0;
+                color: #000000;
+            }
+            QListWidget::item:hover {
+                background-color: #f0f0f0;
+            }
+        """)
         self.project_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.project_list.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
-        self.project_list.viewport().customContextMenuRequested.connect(self.show_project_context_menu)
-        self.project_list.currentItemChanged.connect(self.on_project_selection_changed)
-        self.project_list.setHorizontalScrollBarPolicy(1)  # Qt.ScrollBarAlwaysOff = 1
+        self.project_list.viewport().customContextMenuRequested.connect(
+            self.show_project_context_menu)
+        self.project_list.currentItemChanged.connect(
+            self.on_project_selection_changed)
+        self.project_list.setHorizontalScrollBarPolicy(
+            1)  # Qt.ScrollBarAlwaysOff = 1
         self.project_list.setWordWrap(False)
         self.project_list.setUniformItemSizes(True)
         self.project_list.setStyleSheet(f"""
@@ -1728,11 +2049,10 @@ class MainWindow(QMainWindow):
             }}
         """)
         self.sidebar_layout.addWidget(self.project_list)
-        self.sidebar_layout.addStretch()
+        # self.sidebar_layout.addStretch()
         # 사이드바 크기 설정
-        self.sidebar.setMinimumWidth(150)
         self.sidebar.setMaximumWidth(200)
-        
+
         # --- 검색바 스타일 개선 ---
         self.search_toolbar = self.addToolBar("검색")
         self.search_toolbar.setObjectName("search_toolbar")
@@ -1753,10 +2073,14 @@ class MainWindow(QMainWindow):
 
         # Eisenhower Matrix 색상/키워드/설명/아이콘 (한글화)
         quadrant_info = [
-            ("#d32f2f", "중요·긴급", "즉시 처리", self.style().standardIcon(QStyle.SP_DialogApplyButton)),
-            ("#f57c00", "중요", "계획/우선순위", self.style().standardIcon(QStyle.SP_BrowserReload)),
-            ("#388e3c", "긴급", "위임/빠른 처리", self.style().standardIcon(QStyle.SP_ArrowRight)),
-            ("#757575", "중요 아님·긴급 아님", "삭제/미루기", self.style().standardIcon(QStyle.SP_TrashIcon)),
+            ("#d32f2f", "중요·긴급", "즉시 처리", self.style().standardIcon(
+                QStyle.SP_DialogApplyButton)),
+            ("#f57c00", "중요", "계획/우선순위",
+             self.style().standardIcon(QStyle.SP_BrowserReload)),
+            ("#388e3c", "긴급", "위임/빠른 처리",
+             self.style().standardIcon(QStyle.SP_ArrowRight)),
+            ("#757575", "중요 아님·긴급 아님", "삭제/미루기",
+             self.style().standardIcon(QStyle.SP_TrashIcon)),
         ]
         # 3x3 그리드로 확장하여 축 라벨이 사분면 바깥에 위치하도록
         grid_layout = QGridLayout()
@@ -1764,7 +2088,8 @@ class MainWindow(QMainWindow):
         grid_layout.setContentsMargins(16, 16, 16, 16)
         self.quadrant_widgets = []
         for i, (color, keyword, desc, icon) in enumerate(quadrant_info):
-            quad_widget = EisenhowerQuadrantWidget(color, keyword, desc, icon, self)
+            quad_widget = EisenhowerQuadrantWidget(
+                color, keyword, desc, icon, self)
             row = 1 + (i // 2)
             col = 1 + (i % 2)
             grid_layout.addWidget(quad_widget, row, col)
@@ -1781,7 +2106,8 @@ class MainWindow(QMainWindow):
         self.splitter.setHandleWidth(0)
         self.splitter.setChildrenCollapsible(False)
         self.splitter.setContentsMargins(0, 0, 0, 0)
-        self.splitter.setStyleSheet("QSplitter { border: none; margin: 0; padding: 0; }")
+        self.splitter.setStyleSheet(
+            "QSplitter { border: none; margin: 0; padding: 0; }")
         self.setCentralWidget(self.splitter)
         self.update_sidebar_toggle_icon()
         # 스타일시트는 기존과 동일하게 유지 또는 필요시 추가
@@ -1793,15 +2119,16 @@ class MainWindow(QMainWindow):
         self.toolbar.setMovable(False)
 
     def create_opacity_icon(self, color):
-        icon_size = self.toolbar.iconSize() # 툴바 아이콘 크기 참조
-        pixmap = QPixmap(icon_size) # 참조한 크기로 QPixmap 생성
+        icon_size = self.toolbar.iconSize()  # 툴바 아이콘 크기 참조
+        pixmap = QPixmap(icon_size)  # 참조한 크기로 QPixmap 생성
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
         # 아이콘 내부 여백을 고려하여 그림 크기 조정 (예: 전체 크기의 70-80%)
         padding = int(icon_size.width() * 0.15)
         draw_rect = pixmap.rect().adjusted(padding, padding, -padding, -padding)
-        painter.setPen(QPen(color, 1.5 if icon_size.width() > 16 else 1)) # 선 두께도 크기에 따라 조정
+        painter.setPen(QPen(color, 1.5 if icon_size.width()
+                       > 16 else 1))  # 선 두께도 크기에 따라 조정
         painter.drawEllipse(draw_rect) 
         painter.end()
         return QIcon(pixmap)
@@ -1814,9 +2141,9 @@ class MainWindow(QMainWindow):
                 # Python 참조가 남아있는 경우를 대비하여 try-except 사용
                 if self.opacity_popup.isVisible():
                     self.opacity_popup.close()
-            except RuntimeError: # 이미 삭제된 객체에 접근하려 할 때
-                pass # 특별히 할 작업 없음
-            self.opacity_popup = None # 이전 참조 정리
+            except RuntimeError:  # 이미 삭제된 객체에 접근하려 할 때
+                pass  # 특별히 할 작업 없음
+            self.opacity_popup = None  # 이전 참조 정리
 
         # 팝업을 새로 생성하고 표시
         button = self.toolbar.widgetForAction(self.opacity_action)
@@ -1825,63 +2152,89 @@ class MainWindow(QMainWindow):
             self.opacity_popup = OpacityPopup(self)
             self.opacity_popup.show_at(point)
         else: 
-            cursor_pos = QCursor.pos() # QCursor를 사용하려면 QtGui에서 import 필요
+            cursor_pos = QCursor.pos()  # QCursor를 사용하려면 QtGui에서 import 필요
             self.opacity_popup = OpacityPopup(self)
             self.opacity_popup.show_at(cursor_pos)
 
     def show_project_context_menu(self, position):
-        item = self.project_list.itemAt(position)
-        menu = QMenu()
-        add_action = menu.addAction("새 프로젝트 추가")
-        if item is not None:
-            rename_action = menu.addAction("이름 변경")
-            delete_action = menu.addAction("프로젝트 삭제")
-        action = menu.exec_(self.project_list.viewport().mapToGlobal(position))
+        """프로젝트 컨텍스트 메뉴를 표시합니다."""
+        menu = QMenu(self)
+        
+        # 메뉴 액션 생성
+        add_action = menu.addAction("새 프로젝트")
+        rename_action = menu.addAction("이름 변경")
+        delete_action = menu.addAction("삭제")
+        
+        # 현재 선택된 항목이 있는 경우에만 일부 메뉴 활성화
+        current_item = self.project_list.currentItem()
+        if current_item:
+            rename_action.setEnabled(True)
+            delete_action.setEnabled(True)
+        else:
+            rename_action.setEnabled(False)
+            delete_action.setEnabled(False)
+        
+        # 메뉴 표시 및 액션 처리
+        action = menu.exec_(self.project_list.mapToGlobal(position))
+        
         if action == add_action:
             self.add_new_project()
-        elif item is not None and action == rename_action:
+        elif action == rename_action and current_item:
             self.rename_selected_project()
-        elif item is not None and action == delete_action:
+        elif action == delete_action and current_item:
             self.delete_selected_project()
 
-    def add_new_project(self):
-        text, ok = QInputDialog.getText(self, "새 프로젝트", "프로젝트 이름:")
-        if ok and text.strip():
-            project_name = text.strip()
-            if project_name not in self.projects_data:
-                self.statusBar().showMessage(f"새 프로젝트 '{project_name}' 생성 중...")
-                QApplication.processEvents()
-                
-                self.projects_data[project_name] = {"tasks": [[], [], [], []]} 
-                self.project_list.addItem(project_name)
-                self.project_list.setCurrentRow(self.project_list.count() - 1) 
-                self.save_project_to_file(project_name) 
-                self.adjust_sidebar_width()
-                
-                self.statusBar().showMessage(f"새 프로젝트 '{project_name}' 생성 완료", 3000)
+    def add_new_project(self, name=None):
+        if name is None:
+            if not self.is_test_mode:  # 테스트 모드가 아닐 때만 다이얼로그 표시
+                name, ok = QInputDialog.getText(self, "새 프로젝트", "프로젝트 이름:")
+                if not ok or not name:
+                    return
             else:
-                QMessageBox.warning(self, "중복 오류", "이미 존재하는 프로젝트 이름입니다.")
+                name = "TestProject"  # 테스트 모드에서는 기본 이름 사용
+        
+        if name in self.projects_data:
+            if not self.is_test_mode:  # 테스트 모드가 아닐 때만 경고 표시
+                QMessageBox.warning(self, "경고", "이미 존재하는 프로젝트 이름입니다.")
+            return
+        
+        self.projects_data[name] = {
+            "quadrant1": [],
+            "quadrant2": [],
+            "quadrant3": [],
+            "quadrant4": []
+        }
+        
+        item = QListWidgetItem(name)
+        self.project_list.addItem(item)
+        self.project_list.setCurrentItem(item)
+        self.save_project_to_file(name)
 
     def rename_selected_project(self):
         current_item = self.project_list.currentItem()
         if not current_item:
             return
         old_name = current_item.text()
-        new_name, ok = QInputDialog.getText(self, "이름 변경", f"'{old_name}'의 새 이름:", text=old_name)
+        new_name, ok = QInputDialog.getText(
+            self, "이름 변경", f"'{old_name}'의 새 이름:", text=old_name)
         if ok and new_name.strip() and new_name.strip() != old_name:
             new_name_stripped = new_name.strip()
             if new_name_stripped in self.projects_data:
                 QMessageBox.warning(self, "중복 오류", "이미 존재하는 프로젝트 이름입니다.")
                 return
-            self.projects_data[new_name_stripped] = self.projects_data.pop(old_name)
+            self.projects_data[new_name_stripped] = self.projects_data.pop(
+                old_name)
             current_item.setText(new_name_stripped)
-            old_file_path = os.path.join(self.data_dir, f"project_{old_name}.json")
-            new_file_path = os.path.join(self.data_dir, f"project_{new_name_stripped}.json")
+            old_file_path = os.path.join(
+                self.data_dir, f"project_{old_name}.json")
+            new_file_path = os.path.join(
+                self.data_dir, f"project_{new_name_stripped}.json")
             if os.path.exists(old_file_path):
                 try:
                     os.rename(old_file_path, new_file_path)
                 except OSError as e:
-                     QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
+                    QMessageBox.critical(
+                        self, "파일 오류", f"프로젝트 파일 이름 변경 실패: {e}")
             if self.auto_save_enabled:
                 self.save_project_to_file(new_name_stripped) 
             self.adjust_sidebar_width()
@@ -1890,29 +2243,56 @@ class MainWindow(QMainWindow):
         current_item = self.project_list.currentItem()
         if not current_item:
             return
+            
         project_name = current_item.text()
-        reply = QMessageBox.question(self, "프로젝트 삭제", f"'{project_name}' 프로젝트를 삭제하시겠습니까?\n(데이터와 해당 프로젝트 파일 모두 삭제됩니다!)", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        # 사용자 확인
+        reply = QMessageBox.question(
+            self, 
+            "프로젝트 삭제", 
+            f"'{project_name}' 프로젝트를 삭제하시겠습니까?\n(데이터와 해당 프로젝트 파일 모두 삭제됩니다!)",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
         if reply == QMessageBox.Yes:
-            row = self.project_list.row(current_item)
-            self.project_list.takeItem(row) 
-            if project_name in self.projects_data:
-                del self.projects_data[project_name] 
-            file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except OSError as e:
-                    QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 삭제 실패: {e}")
-            if self.project_list.count() > 0:
-                new_row = max(0, row - 1)
-                if new_row < self.project_list.count():
-                    self.project_list.setCurrentRow(new_row)
+            try:
+                # UI에서 제거
+                row = self.project_list.row(current_item)
+                self.project_list.takeItem(row)
+                
+                # 메모리에서 제거
+                if project_name in self.projects_data:
+                    del self.projects_data[project_name]
+                
+                # 파일 시스템에서 제거
+                file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                    except OSError as e:
+                        QMessageBox.critical(self, "파일 오류", f"프로젝트 파일 삭제 실패: {e}")
+                        return
+                
+                # 다음 프로젝트 선택
+                if self.project_list.count() > 0:
+                    new_row = max(0, row - 1)
+                    if new_row < self.project_list.count():
+                        self.project_list.setCurrentRow(new_row)
+                    else:
+                        self.project_list.setCurrentRow(self.project_list.count() - 1)
                 else:
-                    self.project_list.setCurrentRow(self.project_list.count() - 1 if self.project_list.count() > 0 else -1)
-            else:
-                 self.current_project_name = None 
-                 self.clear_all_quadrants()
-            self.adjust_sidebar_width()
+                    self.current_project_name = None
+                    self.clear_all_quadrants()
+                
+                # UI 업데이트
+                self.adjust_sidebar_width()
+                self.statusBar().showMessage(f"'{project_name}' 프로젝트가 삭제되었습니다.", 3000)
+                
+            except Exception as e:
+                QMessageBox.critical(self, "오류", f"프로젝트 삭제 중 오류가 발생했습니다: {str(e)}")
+                # 오류 발생 시 UI 복구
+                self.reload_data_and_ui()
 
     def on_project_selection_changed(self, current_item, previous_item):
         """프로젝트 선택 변경 시 호출"""
@@ -1931,7 +2311,8 @@ class MainWindow(QMainWindow):
         # 새 프로젝트 로드
         if project_name not in self.projects_data:
             print(f"[DEBUG] 새 프로젝트 데이터 로드: {project_name}")
-            self.projects_data[project_name] = self.load_project_from_file(project_name)
+            self.projects_data[project_name] = self.load_project_from_file(
+                project_name)
         
         # 현재 프로젝트 이름 업데이트
         self.current_project_name = project_name
@@ -1952,9 +2333,13 @@ class MainWindow(QMainWindow):
         # 상태바 메시지
         self.statusBar().showMessage(f"'{project_name}' 프로젝트로 전환", 2000)
 
-    def save_project_to_file(self, project_name):
+    def save_project_to_file(self, project_name, file_path=None):
+        """프로젝트를 파일로 저장"""
+        if file_path is None:
+            file_path = os.path.join(self.data_dir, f"project_{project_name}.json")
         if not project_name or project_name not in self.projects_data:
-            print(f"[DEBUG] 저장 실패: 프로젝트 이름이 유효하지 않음 (project_name={project_name})")
+            print(
+                f"[DEBUG] 저장 실패: 프로젝트 이름이 유효하지 않음 (project_name={project_name})")
             return
             
         print(f"[DEBUG] 저장 시작: {project_name}")
@@ -2124,7 +2509,8 @@ class MainWindow(QMainWindow):
                 print(f"[DEBUG] 데이터 디렉토리 생성됨")
             except OSError as e:
                 print(f"[DEBUG] 데이터 디렉토리 생성 실패: {e}")
-                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
+                QMessageBox.critical(
+                    self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
                 return
         
         # 디렉토리 내용 확인
@@ -2164,7 +2550,8 @@ class MainWindow(QMainWindow):
         else:
             # 기본 프로젝트가 없으면 하나 생성
             default_project_name = "기본 프로젝트"
-            self.projects_data[default_project_name] = {"tasks": [[], [], [], []]}
+            self.projects_data[default_project_name] = {
+                "tasks": [[], [], [], []]}
             self.project_list.addItem(default_project_name)
             self.project_list.setCurrentRow(0)
             self.save_project_to_file(default_project_name)
@@ -2177,7 +2564,7 @@ class MainWindow(QMainWindow):
                 if i < len(tasks_by_quadrant):
                     quad_widget.load_tasks(tasks_by_quadrant[i])
                 else:
-                    quad_widget.clear_tasks() # 데이터가 부족할 경우 대비
+                    quad_widget.clear_tasks()  # 데이터가 부족할 경우 대비
         else:
             self.clear_all_quadrants()
 
@@ -2191,14 +2578,18 @@ class MainWindow(QMainWindow):
         main_index = 1     # splitter에서 메인 컨텐츠 인덱스
         sizes = self.splitter.sizes()
         sidebar_visible = sizes[sidebar_index] > 0
+        
         if sidebar_visible:
             # 사이드바 숨기기
+            self.sidebar.setVisible(False)  # 먼저 숨기기
             self.splitter.setSizes([0, sizes[main_index] + sizes[sidebar_index]])
         else:
             # 사이드바 보이기 (최대 너비로)
+            self.sidebar.setVisible(True)  # 먼저 보이기
             self.splitter.setSizes([self.sidebar.maximumWidth(), sizes[main_index]])
-        self.sidebar.setVisible(not sidebar_visible)  # 접근성/포커스 위해 명시
+        
         self.update_sidebar_toggle_icon()
+        
         # 메뉴 액션 체크 상태 동기화
         for action in self.menuBar().actions():
             if action.text() == "보기":
@@ -2206,6 +2597,7 @@ class MainWindow(QMainWindow):
                     if sub_action.text() == "사이드바":
                         sub_action.setChecked(not sidebar_visible)
                         break
+        
         # 설정 저장
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
         settings.setValue("sidebarVisible", not sidebar_visible)
@@ -2214,7 +2606,7 @@ class MainWindow(QMainWindow):
         """사이드바 상태 업데이트"""
         # 아이콘 업데이트
         self.update_sidebar_toggle_icon()
-        
+
         # 메뉴 액션 체크 상태 동기화
         for action in self.menuBar().actions():
             if action.text() == "보기":
@@ -2222,7 +2614,7 @@ class MainWindow(QMainWindow):
                     if sub_action.text() == "사이드바":
                         sub_action.setChecked(visible)
                         break
-        
+
         # 설정 저장
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
         settings.setValue("sidebarVisible", visible)
@@ -2233,26 +2625,28 @@ class MainWindow(QMainWindow):
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         else:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.update_always_on_top_icon() # 아이콘 및 툴큐 업데이트
-        self.show() # 플래그 변경 후 show() 호출 필수
+        self.update_always_on_top_icon()  # 아이콘 및 툴큐 업데이트
+        self.show()  # 플래그 변경 후 show() 호출 필수
 
     def toggle_always_on_top(self):
         # QAction의 checked 상태가 이미 변경된 후 호출됨
         self.set_always_on_top(self.always_on_top_action.isChecked())
 
     def update_always_on_top_icon(self):
-        if not hasattr(self, 'always_on_top_action'): # 초기화 중 오류 방지
+        if not hasattr(self, 'always_on_top_action'):  # 초기화 중 오류 방지
             return
         if self.always_on_top_action.isChecked(): 
             # "고정됨" 상태 아이콘: SP_DialogYesButton 또는 핀 모양 아이콘
             icon = self.style().standardIcon(QStyle.SP_DialogYesButton) 
             self.always_on_top_action.setIcon(icon)
-            self.always_on_top_action.setToolTip("창 고정 해제 (Always on Top 비활성화)")
+            self.always_on_top_action.setToolTip(
+                "창 고정 해제 (Always on Top 비활성화)")
         else:
             # "고정 안됨" 상태 아이콘: SP_DialogNoButton 또는 빈 핀 모양 아이콘
             icon = self.style().standardIcon(QStyle.SP_DialogNoButton) 
             self.always_on_top_action.setIcon(icon)
-            self.always_on_top_action.setToolTip("창 항상 위에 고정 (Always on Top 활성화)")
+            self.always_on_top_action.setToolTip(
+                "창 항상 위에 고정 (Always on Top 활성화)")
 
     def set_window_opacity(self, opacity):
         self.window_opacity = opacity 
@@ -2281,16 +2675,17 @@ class MainWindow(QMainWindow):
                         break
         self.data_dir = settings.value("dataDir", self.data_dir)
         self.always_on_top = settings.value("alwaysOnTop", False, type=bool)
-        if hasattr(self, 'always_on_top_action'):
-            self.always_on_top_action.setChecked(self.always_on_top)
+        if hasattr(self, 'always_on_top_action'): 
+            self.always_on_top_action.setChecked(self.always_on_top) 
         self.update_always_on_top_icon()
         if self.always_on_top_action.isChecked():
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         else:
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+             self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.window_opacity = settings.value("windowOpacity", 1.0, type=float)
         self.set_window_opacity(self.window_opacity)
-        self.auto_save_enabled = settings.value("general/autoSaveEnabled", True, type=bool)
+        self.auto_save_enabled = settings.value(
+            "general/auto_save", True, type=bool)
     
     def save_settings(self):
         settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
@@ -2300,14 +2695,15 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'toolbar'):
             settings.setValue("toolbarVisible", self.toolbar.isVisible())
         if hasattr(self, 'search_toolbar'):
-            settings.setValue("searchToolbarVisible", self.search_toolbar.isVisible())
+            settings.setValue("searchToolbarVisible",
+                              self.search_toolbar.isVisible())
             
         settings.setValue("sidebarVisible", self.sidebar.isVisible())
-        settings.setValue("dataDir", self.data_dir) # 현재 사용 중인 data_dir을 저장
+        settings.setValue("dataDir", self.data_dir)  # 현재 사용 중인 data_dir을 저장
         settings.setValue("alwaysOnTop", self.always_on_top)
         settings.setValue("windowOpacity", self.window_opacity)
         # 자동 저장 설정은 SettingsDialog에서 직접 QSettings에 저장함
-        # settings.setValue("general/autoSaveEnabled", self.auto_save_enabled) # MainWindow에서 관리 시 필요
+        # settings.setValue("general/auto_save", self.auto_save_enabled) # MainWindow에서 관리 시 필요
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(current_data_dir=self.data_dir, 
@@ -2324,10 +2720,11 @@ class MainWindow(QMainWindow):
     # --- 신규 파일 작업 메서드 --- #
     def import_project_file(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "프로젝트 파일 가져오기", "", "JSON 파일 (*.json);;모든 파일 (*)", options=options)
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "프로젝트 파일 가져오기", "", "JSON 파일 (*.json);;모든 파일 (*)", options=options)
         
         if not file_path:
-            return # 사용자가 취소
+            return  # 사용자가 취소
 
         try:
             # 1. 파일 내용 읽기
@@ -2336,7 +2733,8 @@ class MainWindow(QMainWindow):
             
             # 기본 JSON 구조 검증 및 보정
             if not isinstance(imported_data, dict):
-                QMessageBox.warning(self, "가져오기 오류", "선택한 파일의 최상위 데이터가 딕셔너리 형식이 아닙니다.")
+                QMessageBox.warning(
+                    self, "가져오기 오류", "선택한 파일의 최상위 데이터가 딕셔너리 형식이 아닙니다.")
                 return
             
             tasks_data = imported_data.get("tasks")
@@ -2344,7 +2742,7 @@ class MainWindow(QMainWindow):
                 # tasks가 없거나, 리스트가 아니거나, 4개의 quadrant 구조가 아니면 기본 구조라도 만들어줌
                 # 사용자의 데이터를 최대한 보존하되, 앱 구조에 맞게끔 최소한으로 조정
                 corrected_tasks = [[], [], [], []]
-                if isinstance(tasks_data, list): # 일부 데이터가 리스트 형태로 있다면 최대한 활용
+                if isinstance(tasks_data, list):  # 일부 데이터가 리스트 형태로 있다면 최대한 활용
                     for i in range(min(len(tasks_data), 4)):
                         if isinstance(tasks_data[i], list):
                             corrected_tasks[i] = tasks_data[i]
@@ -2367,7 +2765,7 @@ class MainWindow(QMainWindow):
             potential_project_name, _ = os.path.splitext(original_filename)
 
         new_project_name = potential_project_name.strip()
-        if not new_project_name: # 이름이 비었으면 기본 이름 사용
+        if not new_project_name:  # 이름이 비었으면 기본 이름 사용
             new_project_name = "가져온_프로젝트"
 
         # 중복 이름 처리
@@ -2377,31 +2775,37 @@ class MainWindow(QMainWindow):
             final_project_name = f"{new_project_name}_{name_suffix}"
             name_suffix += 1
         
-        text, ok = QInputDialog.getText(self, "프로젝트 이름 확인", "가져올 프로젝트의 이름을 입력하세요:", text=final_project_name)
+        text, ok = QInputDialog.getText(
+            self, "프로젝트 이름 확인", "가져올 프로젝트의 이름을 입력하세요:", text=final_project_name)
         if ok and text.strip():
             final_project_name = text.strip()
             if final_project_name in self.projects_data:
-                QMessageBox.warning(self, "이름 중복", f"프로젝트 이름 '{final_project_name}'은(는) 이미 존재합니다. 가져오기를 취소합니다.")
+                QMessageBox.warning(
+                    self, "이름 중복", f"프로젝트 이름 '{final_project_name}'은(는) 이미 존재합니다. 가져오기를 취소합니다.")
                 return
         elif not ok: 
             return
         
-        new_project_file_path = os.path.join(self.data_dir, f"project_{final_project_name}.json")
+        new_project_file_path = os.path.join(
+            self.data_dir, f"project_{final_project_name}.json")
         try:
             with open(new_project_file_path, 'w', encoding='utf-8') as f:
                 json.dump(imported_data, f, ensure_ascii=False, indent=4)
         except Exception as e:
-            QMessageBox.critical(self, "가져오기 오류", f"가져온 프로젝트를 저장하는 중 오류가 발생했습니다: {e}")
+            QMessageBox.critical(
+                self, "가져오기 오류", f"가져온 프로젝트를 저장하는 중 오류가 발생했습니다: {e}")
             return
 
         self.projects_data[final_project_name] = imported_data
         self.project_list.addItem(final_project_name)
 
-        items = self.project_list.findItems(final_project_name, Qt.MatchExactly)
+        items = self.project_list.findItems(
+            final_project_name, Qt.MatchExactly)
         if items:
             self.project_list.setCurrentItem(items[0]) 
         
-        QMessageBox.information(self, "가져오기 성공", f"프로젝트 '{final_project_name}'(으)로 성공적으로 가져왔습니다.")
+        QMessageBox.information(
+            self, "가져오기 성공", f"프로젝트 '{final_project_name}'(으)로 성공적으로 가져왔습니다.")
 
     def save_current_project(self):
         if self.current_project_name:
@@ -2413,12 +2817,15 @@ class MainWindow(QMainWindow):
 
     def save_project_as(self):
         if not self.current_project_name:
-            QMessageBox.information(self, "알림", "'다른 이름으로 저장'할 프로젝트가 선택되지 않았습니다.")
+            QMessageBox.information(
+                self, "알림", "'다른 이름으로 저장'할 프로젝트가 선택되지 않았습니다.")
             return
 
-        current_project_data = self.projects_data.get(self.current_project_name)
+        current_project_data = self.projects_data.get(
+            self.current_project_name)
         if not current_project_data:
-            QMessageBox.warning(self, "오류", f"현재 프로젝트 '{self.current_project_name}'의 데이터를 찾을 수 없습니다.")
+            QMessageBox.warning(
+                self, "오류", f"현재 프로젝트 '{self.current_project_name}'의 데이터를 찾을 수 없습니다.")
             return
 
         # 새 프로젝트 이름 제안 시 현재 이름 기반
@@ -2438,10 +2845,12 @@ class MainWindow(QMainWindow):
         try:
             # 선택한 경로에 파일 저장
             with open(new_file_path, 'w', encoding='utf-8') as f:
-                json.dump(current_project_data, f, ensure_ascii=False, indent=4)
+                json.dump(current_project_data, f,
+                          ensure_ascii=False, indent=4)
 
             # 파일명에서 프로젝트 이름 추출
-            new_project_name = os.path.splitext(os.path.basename(new_file_path))[0]
+            new_project_name = os.path.splitext(
+                os.path.basename(new_file_path))[0]
             if new_project_name.startswith("project_"):
                 new_project_name = new_project_name[8:]
 
@@ -2450,14 +2859,17 @@ class MainWindow(QMainWindow):
             self.project_list.addItem(new_project_name)
 
             # 새 프로젝트 선택
-            items = self.project_list.findItems(new_project_name, Qt.MatchExactly)
+            items = self.project_list.findItems(
+                new_project_name, Qt.MatchExactly)
             if items:
                 self.project_list.setCurrentItem(items[0])
 
-            QMessageBox.information(self, "저장 완료", f"프로젝트가 '{new_project_name}'(으)로 저장되었습니다.")
+            QMessageBox.information(
+                self, "저장 완료", f"프로젝트가 '{new_project_name}'(으)로 저장되었습니다.")
 
         except Exception as e:
-            QMessageBox.critical(self, "저장 오류", f"프로젝트 저장 중 오류가 발생했습니다: {str(e)}")
+            QMessageBox.critical(
+                self, "저장 오류", f"프로젝트 저장 중 오류가 발생했습니다: {str(e)}")
             return
 
     def reload_data_and_ui(self):
@@ -2467,8 +2879,8 @@ class MainWindow(QMainWindow):
         # 1. 현재 로드된 프로젝트 데이터 및 사이드바 초기화
         self.projects_data.clear()
         self.project_list.clear()
-        self.current_project_name = None # 현재 선택된 프로젝트 없음으로 설정
-        self.clear_all_quadrants() # 4분면 클리어
+        self.current_project_name = None  # 현재 선택된 프로젝트 없음으로 설정
+        self.clear_all_quadrants()  # 4분면 클리어
 
         # 2. 데이터 디렉토리에서 모든 프로젝트 다시 로드
         # 데이터 디렉토리가 존재하지 않을 경우를 대비 (예: 초기화 직후)
@@ -2476,10 +2888,11 @@ class MainWindow(QMainWindow):
             try:
                 os.makedirs(self.data_dir)
             except OSError as e:
-                QMessageBox.critical(self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
-                return # 디렉토리 생성 실패 시 더 이상 진행 불가
+                QMessageBox.critical(
+                    self, "오류", f"데이터 디렉토리 생성 실패: {self.data_dir}\n{e}")
+                return  # 디렉토리 생성 실패 시 더 이상 진행 불가
 
-        self.load_all_projects() # 사이드바도 채워짐
+        self.load_all_projects()  # 사이드바도 채워짐
 
         # 3. 초기 프로젝트 선택 또는 기본 프로젝트 생성 (기존 로직 활용)
         self.select_initial_project()
@@ -2498,10 +2911,12 @@ class MainWindow(QMainWindow):
     def update_sidebar_toggle_icon(self):
         """사이드바 토글 아이콘 업데이트"""
         if self.sidebar.isVisible():
-            self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowLeft))
+            self.toggle_sidebar_action.setIcon(
+            self.style().standardIcon(QStyle.SP_ArrowLeft))
             self.toggle_sidebar_action.setToolTip("프로젝트 목록 숨기기 (Ctrl+B)")
         else:
-            self.toggle_sidebar_action.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+            self.toggle_sidebar_action.setIcon(
+            self.style().standardIcon(QStyle.SP_ArrowRight))
             self.toggle_sidebar_action.setToolTip("프로젝트 목록 보이기 (Ctrl+B)")
 
     def resizeEvent(self, event):
@@ -2628,7 +3043,8 @@ class MainWindow(QMainWindow):
         # 다크 모드 액션 생성
         self.dark_mode_action = QAction(self)
         self.dark_mode_action.setCheckable(True)
-        self.dark_mode_action.setIcon(self.style().standardIcon(QStyle.SP_DialogResetButton))
+        self.dark_mode_action.setIcon(
+            self.style().standardIcon(QStyle.SP_DialogResetButton))
         self.dark_mode_action.setToolTip("다크 모드 전환")
         self.dark_mode_action.triggered.connect(self.toggle_dark_mode)
         
@@ -2826,13 +3242,17 @@ class MainWindow(QMainWindow):
             """)
             # 검색 툴바 및 자식 위젯 직접 스타일 적용
             if hasattr(self, 'search_toolbar'):
-                self.search_toolbar.setStyleSheet("QToolBar { background: #2d2d2d; border-bottom: 1px solid #404040; }")
+                self.search_toolbar.setStyleSheet(
+                    "QToolBar { background: #2d2d2d; border-bottom: 1px solid #404040; }")
             if hasattr(self, 'search_input'):
-                self.search_input.setStyleSheet("QLineEdit { background: #2d2d2d; color: #e0e0e0; border: 1px solid #404040; border-radius: 4px; } QLineEdit:focus { border: 1px solid #0d47a1; }")
+                self.search_input.setStyleSheet(
+                    "QLineEdit { background: #2d2d2d; color: #e0e0e0; border: 1px solid #404040; border-radius: 4px; } QLineEdit:focus { border: 1px solid #0d47a1; }")
             if hasattr(self, 'search_options'):
-                self.search_options.setStyleSheet("QToolButton { color: #e0e0e0; background: #2d2d2d; } QToolButton:hover { background: #404040; }")
+                self.search_options.setStyleSheet(
+                    "QToolButton { color: #e0e0e0; background: #2d2d2d; } QToolButton:hover { background: #404040; }")
             if hasattr(self, 'search_result_label'):
-                self.search_result_label.setStyleSheet("color: #e0e0e0; padding: 0 8px;")
+                self.search_result_label.setStyleSheet(
+                    "color: #e0e0e0; padding: 0 8px;")
         else:
             self.setStyleSheet("""
                 QMainWindow {
@@ -3005,13 +3425,17 @@ class MainWindow(QMainWindow):
             """)
             # 검색 툴바 및 자식 위젯 직접 스타일 적용
             if hasattr(self, 'search_toolbar'):
-                self.search_toolbar.setStyleSheet("QToolBar { background: #ffffff; border-bottom: 1px solid #e0e0e0; }")
+                self.search_toolbar.setStyleSheet(
+                    "QToolBar { background: #ffffff; border-bottom: 1px solid #e0e0e0; }")
             if hasattr(self, 'search_input'):
-                self.search_input.setStyleSheet("QLineEdit { background: #ffffff; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 4px; } QLineEdit:focus { border: 1px solid #3498db; }")
+                self.search_input.setStyleSheet(
+                    "QLineEdit { background: #ffffff; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 4px; } QLineEdit:focus { border: 1px solid #3498db; }")
             if hasattr(self, 'search_options'):
-                self.search_options.setStyleSheet("QToolButton { color: #2c3e50; background: #ffffff; } QToolButton:hover { background: #f8f9fa; }")
+                self.search_options.setStyleSheet(
+                    "QToolButton { color: #2c3e50; background: #ffffff; } QToolButton:hover { background: #f8f9fa; }")
             if hasattr(self, 'search_result_label'):
-                self.search_result_label.setStyleSheet("color: #2c3e50; padding: 0 8px;")
+                self.search_result_label.setStyleSheet(
+                    "color: #2c3e50; padding: 0 8px;")
 
     def setup_search(self):
         """검색 기능 설정"""
@@ -3021,11 +3445,12 @@ class MainWindow(QMainWindow):
         self.search_input.setMinimumWidth(200)
         self.search_input.textChanged.connect(self.filter_tasks)
         self.search_toolbar.addWidget(self.search_input)
-        
+
         # 검색 옵션
         self.search_options = QToolButton()
         self.search_options.setPopupMode(QToolButton.InstantPopup)
-        self.search_options.setIcon(self.style().standardIcon(QStyle.SP_FileDialogDetailedView))
+        self.search_options.setIcon(
+            self.style().standardIcon(QStyle.SP_FileDialogDetailedView))
         self.search_options.setToolTip("검색 옵션")
         search_menu = QMenu()
         self.search_title_action = QAction("제목으로 검색", self)
@@ -3042,7 +3467,12 @@ class MainWindow(QMainWindow):
         search_menu.addAction(self.search_completed_action)
         self.search_options.setMenu(search_menu)
         self.search_toolbar.addWidget(self.search_options)
-        
+
+        # 검색 결과 레이블 추가
+        self.search_result_label = QLabel()
+        self.search_result_label.setText("")
+        self.search_toolbar.addWidget(self.search_result_label)
+
         # 검색 옵션 변경 시 필터링 다시 실행
         self.search_title_action.triggered.connect(self.filter_tasks)
         self.search_details_action.triggered.connect(self.filter_tasks)
@@ -3069,6 +3499,8 @@ class MainWindow(QMainWindow):
             for i in range(quad.list_widget.count()):
                 item = quad.list_widget.item(i)
                 task_data = item.data(Qt.UserRole)
+                if task_data is None:
+                    continue
                 total_tasks += 1
                 
                 # 완료된 작업 필터링
@@ -3092,7 +3524,6 @@ class MainWindow(QMainWindow):
                 if title_match or details_match:
                     item.setHidden(False)
                     matched_tasks += 1
-                    
                     # 검색어 하이라이트를 위한 스타일 설정
                     if title_match:
                         title = task_data.get("title", "")
@@ -3105,17 +3536,20 @@ class MainWindow(QMainWindow):
                     
         # 검색 결과 표시
         if matched_tasks > 0:
-            self.search_result_label.setText(f"검색 결과: {matched_tasks}/{total_tasks}개 작업")
-            self.search_result_label.setStyleSheet("color: #2c3e50; padding: 0 8px;")
+            self.search_result_label.setText(
+                f"검색 결과: {matched_tasks}/{total_tasks}개 작업")
+            self.search_result_label.setStyleSheet(
+                "color: #2c3e50; padding: 0 8px;")
         else:
             self.search_result_label.setText("검색 결과 없음")
-            self.search_result_label.setStyleSheet("color: #e74c3c; padding: 0 8px;")
+            self.search_result_label.setStyleSheet(
+                "color: #e74c3c; padding: 0 8px;")
             
     def clear_search(self):
         """검색 초기화"""
         self.search_input.clear()
-        self.search_result_label.clear()
-        
+        if hasattr(self, 'search_result_label'):
+            self.search_result_label.clear()
         # 모든 작업 표시
         for quad in self.quadrant_widgets:
             for i in range(quad.list_widget.count()):
@@ -3212,12 +3646,14 @@ class MainWindow(QMainWindow):
         
         # 제목
         painter.setFont(title_font)
-        painter.drawText(margin, int(y), f"작업 보고서: {self.current_project_name}")
+        painter.drawText(margin, int(
+            y), f"작업 보고서: {self.current_project_name}")
         y += line_height * 2
         
         # 생성일시
         painter.setFont(normal_font)
-        painter.drawText(margin, int(y), f"생성일시: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        painter.drawText(margin, int(
+            y), f"생성일시: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         y += line_height * 2
         
         # 사분면별 작업 목록
@@ -3250,7 +3686,8 @@ class MainWindow(QMainWindow):
                     # 마감일
                     due_date = item.get("due_date")
                     if due_date:
-                        painter.drawText(margin + 40, int(y), f"마감일: {due_date}")
+                        painter.drawText(margin + 40, int(y),
+                                         f"마감일: {due_date}")
                         y += line_height
                     
                     y += line_height * 0.5
@@ -3269,11 +3706,11 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'toolbar'):
             visible = not self.toolbar.isVisible()
             self.toolbar.setVisible(visible)
-            if hasattr(self, 'toggle_toolbar_action'):
-                self.toggle_toolbar_action.setChecked(visible)
-            # 설정 저장
-            settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
-            settings.setValue("toolbarVisible", visible)
+        if hasattr(self, 'toggle_toolbar_action'):
+            self.toggle_toolbar_action.setChecked(visible)
+        # 설정 저장
+        settings = QSettings(self.settings_file, QSETTINGS_INIFMT)
+        settings.setValue("toolbarVisible", visible)
 
     def toggle_search_toolbar(self):
         visible = not self.search_toolbar.isVisible()
@@ -3293,14 +3730,16 @@ class MainWindow(QMainWindow):
                     continue
                 # 마감일이 지났으면 경고(한 번만)
                 if now > due_dt and (idx, 'overdue') not in quad.notified_set:
-                    self.show_reminder_popup(item["title"], due_dt, overdue=True)
+                    self.show_reminder_popup(
+                        item["title"], due_dt, overdue=True)
                     quad.notified_set.add((idx, 'overdue'))
                 # 알림 시점 체크
                 for minutes in item.get("reminders", []):
                     remind_time = due_dt - timedelta(minutes=minutes)
                     key = (idx, minutes)
                     if remind_time <= now < due_dt and key not in quad.notified_set:
-                        self.show_reminder_popup(item["title"], due_dt, minutes=minutes)
+                        self.show_reminder_popup(
+                            item["title"], due_dt, minutes=minutes)
                         quad.notified_set.add(key)
 
     def show_reminder_popup(self, title, due_dt, minutes=None, overdue=False):
@@ -3323,7 +3762,8 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "project_status_label") or self.project_status_label is None:
             return
         if self.current_project_name:
-            self.project_status_label.setText(f"프로젝트: {self.current_project_name}")
+            self.project_status_label.setText(
+                f"프로젝트: {self.current_project_name}")
         else:
             self.project_status_label.setText("")
 
@@ -3333,11 +3773,13 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
 # --- 투명도 조절 팝업 위젯 --- #
+
 class OpacityPopup(QWidget):
     def __init__(self, parent_window):
         super().__init__(parent_window)
         self.main_window = parent_window
-        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint |
+                            Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
@@ -3374,6 +3816,7 @@ class OpacityPopup(QWidget):
     def show_at(self, pos):
         self.move(pos)
         self.show()
+
 
 class HelpDialog(QDialog):
     def __init__(self, parent=None):
@@ -3415,7 +3858,8 @@ class HelpDialog(QDialog):
         
         # 프로그램 정보 섹션
         info_group_box = QGroupBox("프로그램 정보")
-        info_group_box.setStyleSheet("QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+        info_group_box.setStyleSheet(
+            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
         form_layout = QFormLayout()
         form_layout.setSpacing(8)
         form_layout.setContentsMargins(10, 6, 10, 10)
@@ -3431,7 +3875,8 @@ class HelpDialog(QDialog):
         form_layout.addRow(QLabel("버전:"), QLabel("1.0.1"))
         form_layout.addRow(QLabel("개발자:"), QLabel("octaxii"))
         
-        github_link = QLabel("<a href=\"https://github.com/octaxii/anti-adhd\">GitHub 저장소</a>")
+        github_link = QLabel(
+            "<a href=\"https://github.com/octaxii/anti-adhd\">GitHub 저장소</a>")
         github_link.setOpenExternalLinks(True)
         form_layout.addRow(QLabel("GitHub:"), github_link)
         
@@ -3445,7 +3890,8 @@ class HelpDialog(QDialog):
         
         license_text_edit = QTextEdit()
         license_text_edit.setReadOnly(True)
-        license_text_edit.setStyleSheet("font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        license_text_edit.setStyleSheet(
+            "font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
         
         mit_license_text = """
 MIT License
@@ -3479,7 +3925,8 @@ SOFTWARE.
         
         help_text = QTextEdit()
         help_text.setReadOnly(True)
-        help_text.setStyleSheet("font-size: 9pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        help_text.setStyleSheet(
+            "font-size: 9pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
         
         help_content = """
 <h2>Anti-ADHD 사용 방법</h2>
@@ -3510,6 +3957,190 @@ SOFTWARE.
         help_text.setHtml(help_content)
         layout.addWidget(help_text)
 
+
+# --- 테마 상수 ---
+THEME = {
+    'FONT_FAMILY': "'Segoe UI', 'Noto Sans KR', 'Pretendard', Arial, sans-serif",
+    'FONT_SIZE': '9.5pt',
+    'LIGHT': {
+        'BG': '#f8f9fa',
+        'TEXT': '#2c3e50',
+        'BORDER': '#e0e0e0',
+        'ACCENT': '#3498db',
+        'HOVER': '#f0f0f0',
+        'SELECTED': '#3498db',
+        'DISABLED': '#adb5bd'
+    },
+    'DARK': {
+        'BG': '#1e1e1e',
+        'TEXT': '#e0e0e0',
+        'BORDER': '#404040',
+        'ACCENT': '#0d47a1',
+        'HOVER': '#404040',
+        'SELECTED': '#0d47a1',
+        'DISABLED': '#808080'
+    }
+}
+
+# --- 스타일시트 템플릿 ---
+STYLE_TEMPLATE = {
+    'LIGHT': f"""
+        QMainWindow {{
+            background-color: {THEME['LIGHT']['BG']};
+        }}
+        QWidget {{
+            font-family: {THEME['FONT_FAMILY']};
+            color: {THEME['LIGHT']['TEXT']};
+        }}
+        QListWidget {{
+            border: 1px solid {THEME['LIGHT']['BORDER']};
+            border-radius: 6px;
+            background-color: white;
+            padding: 4px;
+        }}
+        QListWidget::item {{
+            padding: 6px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }}
+        QListWidget::item:selected {{
+            background-color: {THEME['LIGHT']['SELECTED']};
+            color: white;
+        }}
+        QListWidget::item:hover {{
+            background-color: {THEME['LIGHT']['HOVER']};
+        }}
+        QLineEdit {{
+            border: 1px solid {THEME['LIGHT']['BORDER']};
+            border-radius: 6px;
+            padding: 6px;
+            background-color: white;
+        }}
+        QLineEdit:focus {{
+            border: 1px solid {THEME['LIGHT']['ACCENT']};
+        }}
+        QPushButton {{
+            background-color: white;
+            border: 1px solid {THEME['LIGHT']['BORDER']};
+            border-radius: 6px;
+            padding: 6px 12px;
+            min-height: 24px;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{
+            background-color: {THEME['LIGHT']['HOVER']};
+            border-color: {THEME['LIGHT']['ACCENT']};
+        }}
+        QPushButton:pressed {{
+            background-color: #e9ecef;
+        }}
+        QPushButton:disabled {{
+            background-color: {THEME['LIGHT']['BG']};
+            color: {THEME['LIGHT']['DISABLED']};
+        }}
+    """,
+    'DARK': f"""
+        QMainWindow {{
+            background-color: {THEME['DARK']['BG']};
+        }}
+        QWidget {{
+            font-family: {THEME['FONT_FAMILY']};
+            color: {THEME['DARK']['TEXT']};
+        }}
+        QListWidget {{
+            border: 1px solid {THEME['DARK']['BORDER']};
+            border-radius: 6px;
+            background-color: #2d2d2d;
+            padding: 4px;
+        }}
+        QListWidget::item {{
+            padding: 6px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }}
+        QListWidget::item:selected {{
+            background-color: {THEME['DARK']['SELECTED']};
+            color: white;
+        }}
+        QListWidget::item:hover {{
+            background-color: {THEME['DARK']['HOVER']};
+        }}
+        QLineEdit {{
+            border: 1px solid {THEME['DARK']['BORDER']};
+            border-radius: 6px;
+            padding: 6px;
+            background-color: #2d2d2d;
+            color: {THEME['DARK']['TEXT']};
+        }}
+        QLineEdit:focus {{
+            border: 1px solid {THEME['DARK']['ACCENT']};
+        }}
+        QPushButton {{
+            background-color: #2d2d2d;
+            border: 1px solid {THEME['DARK']['BORDER']};
+            border-radius: 6px;
+            padding: 6px 12px;
+            min-height: 24px;
+            font-weight: 500;
+            color: {THEME['DARK']['TEXT']};
+        }}
+        QPushButton:hover {{
+            background-color: {THEME['DARK']['HOVER']};
+            border-color: {THEME['DARK']['ACCENT']};
+        }}
+        QPushButton:pressed {{
+            background-color: #505050;
+        }}
+        QPushButton:disabled {{
+            background-color: #2d2d2d;
+            color: {THEME['DARK']['DISABLED']};
+        }}
+    """
+}
+
+# ... existing code ...
+
+def apply_theme(self):
+    """현재 테마 적용"""
+    theme = 'DARK' if self.dark_mode else 'LIGHT'
+    self.setStyleSheet(STYLE_TEMPLATE[theme])
+    
+    # 검색 툴바 스타일 업데이트
+    if hasattr(self, 'search_toolbar'):
+        self.search_toolbar.setStyleSheet(f"""
+            QToolBar {{
+                background: {THEME[theme]['BG']};
+                border-bottom: 1px solid {THEME[theme]['BORDER']};
+            }}
+        """)
+    if hasattr(self, 'search_input'):
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: {THEME[theme]['BG']};
+                color: {THEME[theme]['TEXT']};
+                border: 1px solid {THEME[theme]['BORDER']};
+                border-radius: 4px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME[theme]['ACCENT']};
+            }}
+        """)
+    if hasattr(self, 'search_options'):
+        self.search_options.setStyleSheet(f"""
+            QToolButton {{
+                color: {THEME[theme]['TEXT']};
+                background: {THEME[theme]['BG']};
+            }}
+            QToolButton:hover {{
+                background: {THEME[theme]['HOVER']};
+            }}
+        """)
+    if hasattr(self, 'search_result_label'):
+        self.search_result_label.setStyleSheet(f"""
+            color: {THEME[theme]['TEXT']};
+            padding: 0 8px;
+        """)
+
 # --- 스타일 통합: 조니 아이브 총괄, 스티브 잡스 컨펌 ---
 APP_FONT = "'SF Pro', 'Helvetica Neue', 'Apple SD Gothic Neo', Arial, sans-serif"
 APP_BG = "#fff"
@@ -3519,237 +4150,108 @@ APP_SELECT = "#e5e5ea"
 APP_WEEKEND = "#ff3b30"
 
 # 메인 윈도우 전체 스타일
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setStyleSheet(f"""
-        QMainWindow, QWidget, QDialog {{
-            background: {APP_BG};
-            font-family: {APP_FONT};
-            color: {APP_TEXT};
-        }}
-        QGroupBox {{
-            border: 1px solid {APP_SELECT};
-            border-radius: 8px;
-            background: {APP_BG};
-            font-weight: 500;
-            margin-top: 8px;
-            padding: 10px 8px 8px 8px;
-        }}
-        QGroupBox::title {{
-            color: {APP_TEXT};
-            font-size: 13px;
-            font-weight: 600;
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            padding: 0 8px;
-        }}
-        QListWidget {{
-            background: {APP_BG};
+    
+    # 기본 스타일시트 설정
+    app.setStyleSheet("""
+        QMainWindow {
+            background-color: #f5f5f5;
+        }
+        QWidget {
+            font-family: 'Noto Sans KR', 'Pretendard', Arial, sans-serif;
+        }
+        QPushButton {
+            background-color: #1976d2;
+            color: white;
             border: none;
-            font-family: {APP_FONT};
-            font-size: 13px;
-            padding: 0;
-        }}
-        QListWidget::item {{
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin-bottom: 2px;
-            color: {APP_TEXT};
-        }}
-        QListWidget::item:selected, QListWidget::item:focus {{
-            background: {APP_SELECT};
-            color: {APP_TEXT};
-            outline: none;
-        }}
-        QListWidget::item:hover {{
-            background: #f2f2f7;
-        }}
-        QLineEdit, QTextEdit {{
-            background: {APP_BG};
-            border: 1px solid {APP_SELECT};
-            border-radius: 6px;
-            font-family: {APP_FONT};
-            font-size: 13px;
-            color: {APP_TEXT};
-            padding: 6px 8px;
-        }}
-        QLineEdit:focus, QTextEdit:focus {{
-            border: 1.5px solid {APP_POINT};
-            background: #f8faff;
-        }}
-        QPushButton {{
-            background: {APP_BG};
-            border: 1px solid {APP_SELECT};
-            border-radius: 6px;
-            font-family: {APP_FONT};
-            font-size: 13px;
-            color: {APP_TEXT};
-            padding: 6px 16px;
-            font-weight: 500;
-        }}
-        QPushButton:hover {{
-            background: {APP_SELECT};
-        }}
-        QPushButton:pressed {{
-            background: #e0e6ed;
-        }}
-        QTabWidget::pane {{
-            border: 1px solid {APP_SELECT};
-            border-radius: 8px;
-            background: {APP_BG};
-        }}
-        QTabBar::tab {{
-            background: {APP_BG};
-            color: {APP_TEXT};
-            border: 1px solid {APP_SELECT};
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
-            padding: 8px 24px;
-            font-size: 12px;
-            font-weight: 500;
-            min-width: 80px;
-        }}
-        QTabBar::tab:selected {{
-            background: #f8faff;
-            color: {APP_POINT};
-            border-bottom: 2px solid {APP_POINT};
-        }}
-        QTabBar::tab:!selected {{
-            color: #888;
-        }}
-        QStatusBar {{
-            background: {APP_BG};
-            border-top: 1px solid {APP_SELECT};
-            padding: 2px 8px;
-            color: #888;
-        }}
-        QToolBar {{
-            background: {APP_BG};
-            border-bottom: 1px solid {APP_SELECT};
-            padding: 4px 8px;
-            spacing: 4px;
-            min-height: 32px;
-        }}
-        QToolButton {{
-            background: transparent;
-            color: {APP_TEXT};
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 14px;
-        }}
-        QToolButton:checked {{
-            background: {APP_SELECT};
-        }}
-        QToolButton:hover {{
-            background: #f2f2f7;
-        }}
-        QToolButton:focus {{
-            outline: 1.5px solid {APP_POINT};
-            background: #f8faff;
-        }}
-        QCheckBox {{
-            spacing: 8px;
-            color: {APP_TEXT};
-            font-size: 13px;
-        }}
-        QCheckBox::indicator {{
-            width: 18px;
-            height: 18px;
-            border: 1px solid {APP_SELECT};
+            padding: 5px 10px;
             border-radius: 4px;
-            background: {APP_BG};
-        }}
-        QCheckBox::indicator:checked {{
-            background: {APP_POINT};
-            border-color: {APP_POINT};
-        }}
-        QCheckBox::indicator:hover {{
-            border-color: {APP_POINT};
-        }}
-        QSlider::groove:horizontal {{
-            border: 1px solid {APP_SELECT};
-            background: {APP_BG};
-            height: 8px;
+        }
+        QPushButton:hover {
+            background-color: #1565c0;
+        }
+        QPushButton:pressed {
+            background-color: #0d47a1;
+        }
+        QLineEdit {
+            border: 1px solid #bdbdbd;
             border-radius: 4px;
-        }}
-        QSlider::handle:horizontal {{
-            background: {APP_POINT};
-            border: none;
-            width: 16px;
-            margin: -4px 0;
-            border-radius: 8px;
-        }}
-        QSlider::handle:horizontal:hover {{
-            background: #0051a8;
-        }}
-        QCalendarWidget QWidget {{
-            background: {APP_BG};
-            border-radius: 0;
-        }}
-        QCalendarWidget QToolButton {{
-            background: transparent;
-            color: {APP_TEXT};
-            font-family: {APP_FONT};
-            font-weight: 500;
-            font-size: 18px;
-            border: none;
-            margin: 0 2px;
-            padding: 2px 8px 2px 8px;
-        }}
-        QCalendarWidget QToolButton#qt_calendar_prevmonth,
-        QCalendarWidget QToolButton#qt_calendar_nextmonth {{
-            background: #f2f2f7;
-            color: {APP_TEXT};
-            border-radius: 50%;
-            min-width: 28px; min-height: 28px;
-            font-size: 20px;
-            border: none;
-        }}
-        QCalendarWidget QToolButton#qt_calendar_prevmonth:hover,
-        QCalendarWidget QToolButton#qt_calendar_nextmonth:hover {{
-            background: {APP_SELECT};
-        }}
-        QCalendarWidget QMenu {{ background: {APP_BG}; color: {APP_TEXT}; border-radius: 8px; }}
-        QCalendarWidget QSpinBox {{ font-size: 18px; border: none; }}
-        QCalendarWidget QAbstractItemView:enabled {{
-            font-size: 16px;
-            color: {APP_TEXT};
-            background: {APP_BG};
-            selection-background-color: {APP_SELECT};
-            selection-color: {APP_TEXT};
-            outline: none;
-        }}
-        QCalendarWidget QAbstractItemView::item {{
-            border-radius: 0;
-            margin: 0;
-            padding: 8px 0;
-            min-width: 32px;
-            min-height: 32px;
-        }}
-        QCalendarWidget QAbstractItemView::item:selected {{
-            background: {APP_SELECT};
-            color: {APP_TEXT};
-        }}
-        QCalendarWidget QAbstractItemView::item:today {{
-            background: transparent;
-            color: {APP_POINT};
-            border: 2px solid {APP_POINT};
-            border-radius: 16px;
-        }}
-        QCalendarWidget QAbstractItemView::item:enabled:weekend {{
-            color: {APP_WEEKEND};
-        }}
-        QCalendarWidget QAbstractItemView::item:enabled:weekday {{
-            color: {APP_TEXT};
-        }}
-        QCalendarWidget QHeaderView {{
-            background: transparent;
-            color: {APP_TEXT};
-            font-weight: 500;
-            border: none;
-            font-size: 14px;
-        }}
+            padding: 5px;
+        }
+        QLineEdit:focus {
+            border: 1px solid #1976d2;
+        }
+        QListWidget {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background-color: white;
+        }
+        QListWidget::item {
+            padding: 5px;
+        }
+        QListWidget::item:selected {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
     """)
-    win = MainWindow()
-    win.show()
+    
+    # 다크 모드 설정
+    if QSettings().value('dark_mode', False, type=bool):
+        app.setStyleSheet(app.styleSheet() + """
+            QMainWindow, QWidget {
+                background-color: #121212;
+                color: #ffffff;
+            }
+            QPushButton {
+                background-color: #1976d2;
+                color: white;
+            }
+            QLineEdit {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border: 1px solid #424242;
+            }
+            QListWidget {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border: 1px solid #424242;
+            }
+            QListWidget::item:selected {
+                background-color: #1976d2;
+                color: white;
+            }
+        """)
+    
+    # 폰트 설정
+    font = QFont('Noto Sans KR', 9)
+    app.setFont(font)
+    
+    # 로케일 설정
+    QLocale.setDefault(QLocale(QLocale.Korean, QLocale.SouthKorea))
+    
+    # 메인 윈도우 생성 및 표시
+    window = MainWindow()
+    window.show()
+    
     sys.exit(app.exec_()) 
+
+TRANSLATIONS = {
+    "ko": {
+        "Language": "언어",
+        "Korean": "한국어",
+        "English": "영어",
+        # ... 기타 번역 ...
+    },
+    "en": {
+        "Language": "Language",
+        "Korean": "Korean",
+        "English": "English",
+        # ... 기타 번역 ...
+    }
+}
+
+def tr(key):
+    from PyQt5.QtCore import QSettings
+    lang = QSettings("anti_adhd_settings.ini", 1).value("general/language", "ko")
+    return TRANSLATIONS.get(lang, {}).get(key, key)
