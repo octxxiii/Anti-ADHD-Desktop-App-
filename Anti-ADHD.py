@@ -3,11 +3,11 @@ from PyQt5.QtWidgets import (
     QGroupBox, QLineEdit, QPushButton, QAction, QMenu, QGridLayout, QTextEdit, QInputDialog,
     QMessageBox, QFileDialog, QListWidgetItem, QDialog, QLabel, QCheckBox, QSlider, QStyle, QSizePolicy,
     QTabWidget, QFormLayout, QToolButton, QFrame, QStatusBar, QShortcut, QDateTimeEdit, QAbstractItemView,
-    QDialogButtonBox, QComboBox
+    QDialogButtonBox, QComboBox, QScrollArea, QDesktopWidget
 )
 from PyQt5.QtCore import Qt, QSettings, QUrl, QPoint, QSize, QTimer, QDateTime, QCoreApplication, QLocale
 from PyQt5.QtCore import QPropertyAnimation
-from PyQt5.QtGui import QIcon, QDesktopServices, QPainter, QPen, QColor, QPixmap, QCursor, QFont
+from PyQt5.QtGui import QIcon, QDesktopServices, QPainter, QPen, QColor, QPixmap, QCursor, QFont, QPalette
 from PyQt5.QtPrintSupport import QPrintPreviewDialog, QPrinter
 import sys
 import os
@@ -200,24 +200,28 @@ class SettingsDialog(QDialog):
         self.settings_file_path = settings_file_path
         self.settings = QSettings(self.settings_file_path, QSETTINGS_INIFMT)
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(16, 16, 16, 16)
+        # --- 스크롤 영역 적용 ---
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        main_layout = QVBoxLayout(content)
+        main_layout.setSpacing(6)
+        main_layout.setContentsMargins(8, 8, 8, 8)
 
         # 탭 위젯 생성
         self.tab_widget = QTabWidget()
-        # macOS 친화적 밝은 스타일 적용
+        # 저해상도 친화적 스타일시트 적용
         self.tab_widget.setStyleSheet("""
             QTabBar::tab {
                 background: #fff;
                 color: #222;
-                padding: 8px 24px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
+                padding: 4px 10px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
                 font-weight: bold;
-                font-size: 12pt;
-                min-width: 80px;
-                margin-right: 2px;
+                font-size: 10pt;
+                min-width: 60px;
+                margin-right: 1px;
             }
             QTabBar::tab:selected {
                 background: #e3f0ff;
@@ -228,9 +232,9 @@ class SettingsDialog(QDialog):
                 color: #888;
             }
             QTabWidget::pane {
-                border-top: 2px solid #e3f0ff;
+                border-top: 1px solid #e3f0ff;
                 background: #fafbfc;
-                border-radius: 8px;
+                border-radius: 6px;
             }
         """)
         main_layout.addWidget(self.tab_widget)
@@ -249,35 +253,44 @@ class SettingsDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         self.close_button = QPushButton("닫기")
-        self.close_button.setMinimumWidth(80)
-        self.close_button.setMaximumWidth(140)
         self.close_button.setStyleSheet(
-            "QPushButton { font-size: 10pt; padding: 6px 0; border-radius: 6px; background: #1565c0; color: white; font-weight: bold; } QPushButton:hover { background: #1976d2; }")
+            "QPushButton { font-size: 9pt; padding: 2px 10px; border-radius: 5px; background: #1565c0; color: white; font-weight: bold; } QPushButton:hover { background: #1976d2; }")
+        self.close_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.close_button.clicked.connect(self.accept_settings)
         button_layout.addWidget(self.close_button)
         main_layout.addLayout(button_layout)
-        button_layout.setContentsMargins(0, 12, 0, 0)
+        button_layout.setContentsMargins(0, 8, 0, 0)
 
-        self.setLayout(main_layout)
-        self.setMinimumWidth(420)
-        self.setMinimumHeight(340)
-        self.setMaximumWidth(700)
+        scroll.setWidget(content)
+        dialog_layout = QVBoxLayout(self)
+        dialog_layout.addWidget(scroll)
+
+        # 화면 해상도에 맞게 크기 제한
+        screen = QDesktopWidget().screenGeometry()
+        max_w = int(screen.width() * 0.9)
+        max_h = int(screen.height() * 0.9)
+        self.setMaximumSize(max_w, max_h)
+        self.resize(min(420, max_w), min(420, max_h))
+
+        # (생성자 마지막에 테마 적용은 MainWindow에서 호출)
 
     def setup_general_tab(self):
-        layout = QVBoxLayout(self.general_tab)
-        layout.setSpacing(10)
-        layout.setContentsMargins(16, 16, 16, 16)
-
+        # 기존 layout = QVBoxLayout(self.general_tab) 제거
+        outer_layout = QVBoxLayout(self.general_tab)
+        # 각 QGroupBox마다 content QWidget을 생성하여 addWidget으로 추가
         # 언어 설정 그룹
         lang_group = QGroupBox(tr("Language"))
         lang_group.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
-        lang_layout = QHBoxLayout()
-        lang_layout.setSpacing(6)
-        lang_layout.setContentsMargins(10, 6, 10, 10)
-
+            "QGroupBox { font-size: 9pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 4px; background: #fafbfc; padding: 4px; }")
+        lang_outer_layout = QVBoxLayout(lang_group)
+        lang_content = QWidget()
+        lang_content.setStyleSheet('background: #232323; color: #e0e0e0;')
+        lang_layout = QHBoxLayout(lang_content)
+        lang_layout.setSpacing(4)
+        lang_layout.setContentsMargins(6, 4, 6, 6)
         self.lang_combo = QComboBox()
-        self.lang_combo.setStyleSheet("font-size: 9.5pt;")
+        self.lang_combo.setStyleSheet("font-size: 9pt;")
+        self.lang_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.lang_combo.addItem(tr("Korean"), "ko")
         self.lang_combo.addItem(tr("English"), "en")
         current_lang = self.settings.value("general/language", "ko")
@@ -286,102 +299,115 @@ class SettingsDialog(QDialog):
             self.lang_combo.setCurrentIndex(index)
         lang_layout.addWidget(QLabel(tr("Language") + ":"))
         lang_layout.addWidget(self.lang_combo)
-        lang_group.setLayout(lang_layout)
-        layout.addWidget(lang_group)
+        lang_content.setLayout(lang_layout)
+        lang_outer_layout.addWidget(lang_content)
+        outer_layout.addWidget(lang_group)
         self.lang_combo.currentIndexChanged.connect(self._on_language_changed)
 
         # 데이터 경로 설정 그룹
         data_dir_group = QGroupBox(tr("Data Directory"))
         data_dir_group.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+            "QGroupBox { font-size: 9pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 4px; background: #fafbfc; padding: 4px; }")
         data_dir_group_layout = QVBoxLayout()
-        data_dir_group_layout.setSpacing(6)
-        data_dir_group_layout.setContentsMargins(10, 6, 10, 10)
+        data_dir_group_layout.setSpacing(4)
+        data_dir_group_layout.setContentsMargins(6, 4, 6, 6)
         path_input_layout = QHBoxLayout()
         self.data_dir_label = QLabel(tr("Current Path") + ":")
-        self.data_dir_label.setStyleSheet("font-size: 9.5pt; color: #666;")
+        self.data_dir_label.setStyleSheet("font-size: 9pt; color: #666;")
         self.data_dir_edit = QLineEdit(self.current_data_dir)
         self.data_dir_edit.setReadOnly(True)
+        self.data_dir_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.browse_button = QPushButton(tr("Change Folder") + "...")
-        self.browse_button.setMinimumWidth(80)
-        self.browse_button.setMaximumWidth(140)
         self.browse_button.setStyleSheet(
-            "QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+            "QPushButton { font-size: 9pt; padding: 2px 6px; border-radius: 4px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+        self.browse_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.browse_button.clicked.connect(self.browse_data_directory)
         path_input_layout.addWidget(self.data_dir_label)
         path_input_layout.addWidget(self.data_dir_edit, 1)
         path_input_layout.addWidget(self.browse_button)
         data_dir_group_layout.addLayout(path_input_layout)
         path_notice_label = QLabel(tr("Restart the application after changing the path."))
-        path_notice_label.setStyleSheet("font-size: 8.5pt; color: #aaa;")
+        path_notice_label.setStyleSheet("font-size: 8pt; color: #aaa;")
         data_dir_group_layout.addWidget(path_notice_label, 0x0004)
         data_dir_group.setLayout(data_dir_group_layout)
-        layout.addWidget(data_dir_group)
+        outer_layout.addWidget(data_dir_group)
 
-        # 자동 저장 그룹
-        auto_save_group = QGroupBox(tr("Auto Save"))
+        # 자동 저장 그룹 (QVBoxLayout, 체크박스만 단독)
+        auto_save_group = QGroupBox(tr("자동 저장"))
         auto_save_group.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+            "QGroupBox { font-size: 9pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 2px; background: #fafbfc; padding: 2px; }"
+            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; }"
+        )
         auto_save_layout = QVBoxLayout()
-        auto_save_layout.setContentsMargins(10, 6, 10, 10)
-        self.auto_save_checkbox = QCheckBox(tr("Auto Save Application State"))
+        auto_save_layout.setContentsMargins(8, 28, 8, 6)  # top=28로 충분히 띄움
+        auto_save_layout.setSpacing(8)
+        self.auto_save_checkbox = QCheckBox(tr("사용"))
         self.auto_save_checkbox.setChecked(self.settings.value(
             "general/auto_save", True, type=bool))
-        self.auto_save_checkbox.setStyleSheet("font-size: 9.5pt;")
+        self.auto_save_checkbox.setStyleSheet("font-size: 9pt; padding: 0 2px;")
+        self.auto_save_checkbox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.auto_save_checkbox.stateChanged.connect(
             self._on_auto_save_changed)
         auto_save_layout.addWidget(self.auto_save_checkbox)
         auto_save_group.setLayout(auto_save_layout)
-        layout.addWidget(auto_save_group)
+        outer_layout.addWidget(auto_save_group)
 
-        # 업데이트 그룹
-        update_group = QGroupBox(tr("Updates"))
+        # 업데이트 그룹 (QVBoxLayout, 체크박스만 단독)
+        update_group = QGroupBox(tr("업데이트 확인"))
         update_group.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+            "QGroupBox { font-size: 9pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 2px; background: #fafbfc; padding: 2px; }"
+            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; }"
+        )
         update_layout = QVBoxLayout()
-        update_layout.setContentsMargins(10, 6, 10, 10)
-        self.check_updates_checkbox = QCheckBox(tr("Check for Updates on Startup"))
+        update_layout.setContentsMargins(8, 28, 8, 6)  # top=28로 충분히 띄움
+        update_layout.setSpacing(8)
+        self.check_updates_checkbox = QCheckBox(tr("시작 시 확인"))
         self.check_updates_checkbox.setChecked(self.settings.value(
             "general/check_updates", True, type=bool))
-        self.check_updates_checkbox.setStyleSheet("font-size: 9.5pt;")
+        self.check_updates_checkbox.setStyleSheet("font-size: 9pt; padding: 0 2px;")
+        self.check_updates_checkbox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.check_updates_checkbox.stateChanged.connect(
             self._on_check_updates_changed)
-        self.check_now_button = QPushButton(tr("Check for Updates Now"))
-        self.check_now_button.setMinimumWidth(80)
-        self.check_now_button.setMaximumWidth(140)
+        self.check_now_button = QPushButton(tr("지금 확인"))
         self.check_now_button.setStyleSheet(
-            "QPushButton { font-size: 9.5pt; padding: 3px 0; border-radius: 5px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+            "QPushButton { font-size: 9pt; padding: 2px 6px; border-radius: 4px; background: #e3f2fd; color: #1565c0; } QPushButton:hover { background: #bbdefb; }")
+        self.check_now_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.check_now_button.clicked.connect(self.perform_update_check)
         update_layout.addWidget(self.check_updates_checkbox)
-        update_layout.addWidget(self.check_now_button, 0x0001)
+        update_layout.addWidget(self.check_now_button)
         update_group.setLayout(update_layout)
-        layout.addWidget(update_group)
+        outer_layout.addWidget(update_group)
 
-        # 데이터 관리 그룹
+        # 데이터 관리 그룹 spacing 추가
         data_management_group = QGroupBox(tr("Data Management"))
         data_management_group.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
+            "QGroupBox { font-size: 9pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 4px; background: #fafbfc; padding: 4px; }"
+            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; }"
+        )
         data_management_layout = QHBoxLayout()
         data_management_layout.setSpacing(8)
-        data_management_layout.setContentsMargins(10, 8, 10, 10)
+        data_management_layout.setContentsMargins(6, 6, 6, 6)
         self.backup_data_button = QPushButton(tr("Backup Data") + "...")
         self.restore_data_button = QPushButton(tr("Restore Data") + "...")
         self.reset_data_button = QPushButton(tr("Reset Data") + "...")
         for btn in [self.backup_data_button, self.restore_data_button, self.reset_data_button]:
-            btn.setMinimumWidth(80)
-            btn.setMaximumWidth(140)
             btn.setStyleSheet(
-                "QPushButton { font-size: 9.5pt; padding: 5px 0; border-radius: 6px; background: #fff3e0; color: #e65100; font-weight: bold; } QPushButton:hover { background: #ffe0b2; }")
+                "QPushButton { font-size: 9pt; padding: 2px 6px; border-radius: 4px; background: #fff3e0; color: #e65100; font-weight: bold; } QPushButton:hover { background: #ffe0b2; }")
+            btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.backup_data_button.clicked.connect(self.backup_data)
         self.restore_data_button.clicked.connect(self.restore_data)
         self.reset_data_button.clicked.connect(self.reset_data)
         data_management_layout.addWidget(self.backup_data_button)
+        data_management_layout.addSpacing(8)
         data_management_layout.addWidget(self.restore_data_button)
+        data_management_layout.addSpacing(8)
         data_management_layout.addWidget(self.reset_data_button)
         data_management_layout.addStretch()
         data_management_group.setLayout(data_management_layout)
-        layout.addWidget(data_management_group)
-        layout.addStretch()
+        outer_layout.addWidget(data_management_group)
+        outer_layout.addStretch()
+
+        self.general_tab.setLayout(outer_layout)
 
     def _on_language_changed(self, index):
         """언어가 변경되었을 때 호출되는 함수"""
@@ -392,18 +418,15 @@ class SettingsDialog(QDialog):
             self.parent().reload_data_and_ui()
 
     def setup_info_tab(self):
-        layout = QVBoxLayout(self.info_tab)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
-        # 프로그램 정보 섹션
+        outer_layout = QVBoxLayout(self.info_tab)
+        # 프로그램 정보 QGroupBox
         info_group_box = QGroupBox("프로그램 정보")
-        info_group_box.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
-        form_layout = QFormLayout()
-        # form_layout.setLabelAlignment(0x0002)  # Qt.AlignRight (Enum 오류 방지)
-        # form_layout.setRowWrapPolicy(2)  # QFormLayout.WrapAllRows (Enum 오류 방지)
+        info_outer_layout = QVBoxLayout(info_group_box)
+        info_content = QWidget()
+        info_content.setStyleSheet('background: #232323; color: #e0e0e0;')
+        form_layout = QFormLayout(info_content)
         form_layout.setSpacing(8)
-        form_layout.setContentsMargins(10, 6, 10, 10)
+        form_layout.setContentsMargins(10, 26, 10, 10)
         app_name_label = QLabel("Anti-ADHD")
         font = app_name_label.font()
         font.setPointSize(13)
@@ -415,21 +438,23 @@ class SettingsDialog(QDialog):
         form_layout.addRow(QLabel("개발자:"), QLabel("octaxii"))
         github_link = QLabel(
             "<a href=\"https://github.com/octaxii/Anti-ADHD\">GitHub 저장소</a>")
-        # github_link.setTextInteractionFlags(0x0001)  # Qt.TextBrowserInteraction (Enum 오류 방지)
         github_link.setOpenExternalLinks(True)
         form_layout.addRow(QLabel("GitHub:"), github_link)
-        info_group_box.setLayout(form_layout)
-        layout.addWidget(info_group_box)
-        # 라이선스 정보 섹션
+        info_content.setLayout(form_layout)
+        info_outer_layout.addWidget(info_content)
+        outer_layout.addWidget(info_group_box)
+        # 라이선스 QGroupBox
         license_group_box = QGroupBox("라이선스")
-        license_group_box.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
-        license_layout = QVBoxLayout()
-        license_layout.setContentsMargins(10, 6, 10, 10)
-        self.license_text_edit = QTextEdit()
-        self.license_text_edit.setReadOnly(True)
-        self.license_text_edit.setStyleSheet(
-            "font-size: 8.5pt; background: #f8f9fa; color: #333; border-radius: 6px; padding: 6px;")
+        license_outer_layout = QVBoxLayout(license_group_box)
+        license_content = QWidget()
+        license_content.setStyleSheet('background: #232323; color: #e0e0e0;')
+        license_layout = QVBoxLayout(license_content)
+        license_layout.setContentsMargins(10, 26, 10, 10)
+        license_layout.setSpacing(8)
+        license_text_edit = QTextEdit()
+        license_text_edit.setReadOnly(True)
+        license_text_edit.setStyleSheet(
+            "font-size: 8.5pt; background: #232323; color: #fff; border-radius: 6px; padding: 6px;")
         mit_license_text = """
 MIT License
 
@@ -453,11 +478,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-        self.license_text_edit.setText(mit_license_text.strip())
-        license_layout.addWidget(self.license_text_edit)
-        license_group_box.setLayout(license_layout)
-        layout.addWidget(license_group_box)
-        layout.addStretch()
+        license_text_edit.setText(mit_license_text.strip())
+        license_layout.addSpacing(8)
+        license_layout.addWidget(license_text_edit)
+        license_layout.addSpacing(8)
+        license_content.setLayout(license_layout)
+        license_outer_layout.addWidget(license_content)
+        outer_layout.addWidget(license_group_box)
+        outer_layout.addStretch()
+        self.info_tab.setLayout(outer_layout)
 
     def browse_data_directory(self):
         directory = QFileDialog.getExistingDirectory(
@@ -632,6 +661,127 @@ SOFTWARE.
 
         if self.main_window_ref and hasattr(self.main_window_ref, 'reload_data_and_ui'):
             self.main_window_ref.reload_data_and_ui()
+
+    def apply_theme(self, dark_mode):
+        from PyQt5.QtGui import QPalette, QColor
+        if dark_mode:
+            self.setStyleSheet("""
+                QDialog, QWidget {
+                    background: #232323;
+                    color: #e0e0e0;
+                }
+                QFrame {
+                    background: #232323;
+                    border: 1px solid #404040;
+                }
+                QScrollArea, QScrollArea > QWidget {
+                    background: #232323;
+                    border: none;
+                }
+                QGroupBox {
+                    background: #232323;
+                    border: 1.5px solid #404040;
+                    border-radius: 8px;
+                    margin-top: 8px;
+                    color: #e0e0e0;
+                }
+                QGroupBox > QWidget, QGroupBox > QFrame {
+                    background: #232323;
+                }
+                QGroupBox:title {
+                    subcontrol-origin: margin;
+                    subcontrol-position: top left;
+                    background: #232323;
+                    color: #90caf9;
+                    padding: 0 6px;
+                }
+                QTabWidget::pane {
+                    background: #232323;
+                    border: 1px solid #404040;
+                }
+                QTabBar::tab {
+                    background: #232323;
+                    color: #e0e0e0;
+                }
+                QTabBar::tab:selected {
+                    background: #0d47a1;
+                    color: #fff;
+                }
+                QTabBar::tab:!selected {
+                    background: #404040;
+                    color: #aaa;
+                }
+                QLineEdit, QTextEdit, QComboBox {
+                    background: #2d2d2d;
+                    color: #fff;
+                    border: 1.5px solid #404040;
+                }
+                QComboBox QAbstractItemView {
+                    background: #232323;
+                    color: #fff;
+                    selection-background-color: #0d47a1;
+                    selection-color: #fff;
+                }
+                QCheckBox, QRadioButton {
+                    color: #e0e0e0;
+                }
+                QCheckBox::indicator, QRadioButton::indicator {
+                    background: #232323;
+                    border: 1.5px solid #404040;
+                }
+                QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+                    background: #0d47a1;
+                    border: 1.5px solid #1976d2;
+                }
+                QScrollBar:vertical, QScrollBar:horizontal {
+                    background: #232323;
+                    border: none;
+                    width: 12px;
+                }
+                QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+                    background: #444;
+                    border-radius: 6px;
+                }
+                QScrollBar::add-line, QScrollBar::sub-line {
+                    background: none;
+                    border: none;
+                }
+                QPushButton {
+                    background: #0d47a1;
+                    color: #fff;
+                    border: none;
+                }
+                QPushButton:hover {
+                    background: #1976d2;
+                }
+                QPushButton:disabled {
+                    background: #404040;
+                    color: #888;
+                }
+                QLabel {
+                    color: #e0e0e0;
+                }
+            """)
+            # 탭 content QWidget, QTabWidget, QDialog 등에도 직접 스타일 적용
+            if hasattr(self, 'general_tab'):
+                self.general_tab.setStyleSheet('background: #232323; color: #e0e0e0;')
+            if hasattr(self, 'info_tab'):
+                self.info_tab.setStyleSheet('background: #232323; color: #e0e0e0;')
+            if hasattr(self, 'tab_widget'):
+                self.tab_widget.setStyleSheet('background: #232323; color: #e0e0e0;')
+            self.setStyleSheet(self.styleSheet() + '\nQDialog { background: #232323; color: #e0e0e0; }')
+        else:
+            self.setStyleSheet("")
+
+    def open_settings_dialog(self):
+        dialog = SettingsDialog(current_data_dir=self.data_dir, 
+                                settings_file_path=self.settings_file,
+                                parent=self)
+        # 다크모드 상태 전달 및 적용
+        if hasattr(self, 'dark_mode'):
+            dialog.apply_theme(self.dark_mode)
+        if dialog.exec_() == QDialog.Accepted:
+            pass
 
 
 class ProjectListWidget(QListWidget):
@@ -1703,6 +1853,8 @@ class MainWindow(QMainWindow):
 
         self.is_test_mode = False  # 테스트 모드 플래그 추가
         self.dark_mode = False  # 다크 모드 상태 초기화
+        # 프로그램 최초 실행 시 테마 적용
+        self.apply_theme()
 
     def setup_shortcuts(self):
         """키보드 단축키 설정"""
@@ -1835,7 +1987,7 @@ class MainWindow(QMainWindow):
         pass  # 고정 너비를 사용하므로 이 메서드는 더 이상 필요하지 않음
 
     def init_ui(self):
-        self.setWindowTitle("Anti-ADHD (Eisenhower Matrix)")
+        self.setWindowTitle("Anti-ADHD")
         # --- 디자인 토큰 ---
         PRIMARY = "#1976d2"
         ACCENT = "#ff9800"
@@ -1914,32 +2066,7 @@ class MainWindow(QMainWindow):
         self.toolbar.setFloatable(False)
         self.toolbar.setAllowedAreas(Qt.NoToolBarArea)  # 툴바 영역 고정
         self.toolbar.setIconSize(QSize(20, 20))
-        self.toolbar.setStyleSheet(f"""
-            QToolBar {{
-                background: {BG};
-                border-bottom: 1.5px solid {BORDER};
-                padding: 0 0 0 0;
-                spacing: 0px;
-                min-height: 32px;
-                margin: 0;
-            }}
-            QToolButton {{
-                padding: 3px 4px;
-                border-radius: 5px;
-                background: transparent;
-                color: {PRIMARY};
-            }}
-            QToolButton:checked {{
-                background: #e3f0ff;
-            }}
-            QToolButton:hover {{
-                background: #e8e8e8;
-            }}
-            QToolButton:focus {{
-                outline: 2px solid {PRIMARY};
-                background: #e3f0ff;
-            }}
-        """)
+        # self.toolbar.setStyleSheet(...)  # <-- 기존 스타일시트 적용 코드 삭제
         
         # opacity_icon은 툴바 생성 후에 만들어야 함
         opacity_icon = QIcon(self.create_opacity_icon(QColor("black")))
@@ -1967,8 +2094,16 @@ class MainWindow(QMainWindow):
         self.update_always_on_top_icon()
         self.always_on_top_action.triggered.connect(self.toggle_always_on_top)
         
-        settings_toolbar_icon = self.style().standardIcon(
-            QStyle.SP_FileDialogDetailedView)
+        # 톱니바퀴 이모지(⚙️)를 아이콘으로 사용
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        font = QFont()
+        font.setPointSize(16)
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignCenter, "⚙️")
+        painter.end()
+        settings_toolbar_icon = QIcon(pixmap)
         self.settings_toolbar_action = QAction(settings_toolbar_icon, "", self)
         self.settings_toolbar_action.setToolTip("애플리케이션 설정 열기")
         self.settings_toolbar_action.triggered.connect(
@@ -1990,8 +2125,8 @@ class MainWindow(QMainWindow):
         # 상단 버튼/라벨 완전 제거
         # 프로젝트 리스트
         self.project_list = ProjectListWidget(self)
-        self.project_list.setFixedWidth(200)  # 사이드바 고정 너비
-        self.project_list.setFixedHeight(525)  # 사이드바 고정 높이
+        # 고정 높이 제거, Expanding 정책 적용
+        self.project_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.project_list.setStyleSheet("""
             QListWidget {
                 background-color: transparent;
@@ -2709,12 +2844,10 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(current_data_dir=self.data_dir, 
                                 settings_file_path=self.settings_file,
                                 parent=self)
+        # 다크모드 상태 전달 및 적용
+        if hasattr(self, 'dark_mode'):
+            dialog.apply_theme(self.dark_mode)
         if dialog.exec_() == QDialog.Accepted:
-            # 설정 대화상자에서 "확인"(실제로는 "닫기" 후 accept())을 누르면 
-            # SettingsDialog 내부의 accept_settings 메서드에서 QSettings에 필요한 값들이 저장됩니다.
-            # (예: 데이터 디렉토리 변경, 자동 저장 활성화 여부 등)
-            # MainWindow의 always_on_top이나 window_opacity 값은 SettingsDialog에서 직접 제어하지 않으므로,
-            # 여기서는 추가 작업이 필요 없습니다.
             pass
 
     # --- 신규 파일 작업 메서드 --- #
@@ -3072,370 +3205,220 @@ class MainWindow(QMainWindow):
         if self.dark_mode:
             self.setStyleSheet("""
         QMainWindow {
-                    background-color: #1e1e1e;
+            background-color: #1e1e1e;
         }
         QWidget {
-                    font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", "Arial", sans-serif;
-                    color: #e0e0e0;
+            font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+            color: #e0e0e0;
         }
-        QGroupBox {
-                    font-weight: 600;
-                    border: 1px solid #404040;
-                    border-radius: 8px;
-                    margin-top: 8px;
-                    background-color: #2d2d2d;
-                    padding: 12px;
-                }
-                QGroupBox::title {
+        # 기타 다크 테마 스타일 ... */
+        """)
+            # --- 다크 모드: 사이드바/프로젝트 리스트/툴바 스타일시트 동적 적용 ---
+            if hasattr(self, 'sidebar'):
+                self.sidebar.setStyleSheet("background: #232323; border: none;")
+            if hasattr(self, 'project_list'):
+                self.project_list.setStyleSheet("""
+                    QListWidget {
+                        background: #232323;
+                        border: 1px solid #404040;
+                        border-radius: 7px;
+                        color: #e0e0e0;
+                    }
+                    QListWidget::item {
+                        background: transparent;
+                        color: #e0e0e0;
+                    }
+                    QListWidget::item:selected, QListWidget::item:focus {
+                        background: #0d47a1;
+                        color: #fff;
+                    }
+                    QListWidget::item:hover {
+                        background: #404040;
+                    }
+                """)
+            if hasattr(self, 'toolbar'):
+                toolbar_style = """
+                    QToolBar {
+                        background: #232323 !important;
+                        border-bottom: 1.5px solid #404040 !important;
+                        padding: 0 0 0 0 !important;
+                        spacing: 0px !important;
+                        min-height: 32px !important;
+                        margin: 0 !important;
+                    }
+                    QToolButton {
+                        padding: 3px 4px !important;
+                        border-radius: 5px !important;
+                        background: transparent !important;
+                        color: #e0e0e0 !important;
+                    }
+                    QToolButton:checked {
+                        background: #0d47a1 !important;
+                    }
+                    QToolButton:hover {
+                        background: #404040 !important;
+                    }
+                    QToolButton:focus {
+                        outline: 2px solid #0d47a1 !important;
+                        background: #0d47a1 !important;
+                    }
+                """
+                self.toolbar.setStyleSheet(toolbar_style)
+                if hasattr(self, 'search_toolbar'):
+                    self.search_toolbar.setStyleSheet(toolbar_style)
+            # 메뉴바/메뉴 다크 테마 적용
+            self.menuBar().setStyleSheet("""
+                QMenuBar {
+                    background: #232323;
                     color: #e0e0e0;
                 }
-                QListWidget {
-                    border: 1px solid #404040;
-            border-radius: 6px;
-                    background-color: #2d2d2d;
-                    padding: 4px;
-                }
-                QListWidget::item {
-                    padding: 6px;
-                    border-radius: 4px;
-                    margin: 2px 0;
-                }
-                QListWidget::item:selected {
-                    background-color: #0d47a1;
-                    color: white;
-                }
-                QListWidget::item:hover {
-                    background-color: #404040;
-                }
-                QTextEdit, QLineEdit {
-                    border: 1px solid #404040;
-                    border-radius: 6px;
-                    padding: 6px;
-                    background-color: #2d2d2d;
-                    color: #e0e0e0;
-                    selection-background-color: #0d47a1;
-                    selection-color: white;
-                }
-                QTextEdit:focus, QLineEdit:focus {
-                    border: 1px solid #0d47a1;
-                }
-                QPushButton {
-                    background-color: #2d2d2d;
-                    border: 1px solid #404040;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                    min-height: 24px;
-                    font-weight: 500;
-                    color: #e0e0e0;
-                }
-                QPushButton:hover {
-                    background-color: #404040;
-                    border-color: #0d47a1;
-                }
-                QPushButton:pressed {
-                    background-color: #505050;
-                }
-                QPushButton:disabled {
-                    background-color: #2d2d2d;
-                    color: #808080;
-                }
-                QToolBar {
-                    background-color: #2d2d2d;
-                    border-bottom: 1px solid #404040;
-                    padding: 4px;
-                    spacing: 4px;
-                }
-                QToolButton {
-                    padding: 4px;
-                    border-radius: 4px;
+                QMenuBar::item {
                     background: transparent;
                     color: #e0e0e0;
                 }
-                QToolButton:hover {
-                    background-color: #404040;
-                }
-                QToolButton:pressed {
-                    background-color: #505050;
+                QMenuBar::item:selected, QMenuBar::item:pressed {
+                    background: #404040;
+                    color: #fff;
                 }
                 QMenu {
-                    background-color: #2d2d2d;
-                    border: 1px solid #404040;
-                    border-radius: 6px;
-                    padding: 4px;
+                    background: #232323;
+                    color: #e0e0e0;
+                    border: 1.5px solid #404040;
                 }
                 QMenu::item {
-                    padding: 6px 24px;
-                    border-radius: 4px;
+                    background: transparent;
                     color: #e0e0e0;
                 }
                 QMenu::item:selected {
-                    background-color: #0d47a1;
-                    color: white;
-                }
-                QDialog {
-                    background-color: #1e1e1e;
-                }
-                QLabel {
-                    background-color: transparent;
-                    color: #e0e0e0;
-                }
-                QCheckBox {
-                    spacing: 8px;
-                    color: #e0e0e0;
-                }
-                QCheckBox::indicator {
-                    width: 18px;
-                    height: 18px;
-                    border: 1px solid #404040;
-                    border-radius: 4px;
-                    background-color: #2d2d2d;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #0d47a1;
-                    border-color: #0d47a1;
-                }
-                QCheckBox::indicator:hover {
-                    border-color: #0d47a1;
-                }
-                QSlider::groove:horizontal {
-                    border: 1px solid #404040;
-                    background: #2d2d2d;
-                    height: 8px;
-                    border-radius: 4px;
-                }
-                QSlider::handle:horizontal {
                     background: #0d47a1;
-                    border: none;
-                    width: 16px;
-                    margin: -4px 0;
-                    border-radius: 8px;
+                    color: #fff;
                 }
-                QSlider::handle:horizontal:hover {
-                    background: #1565c0;
-                }
-                QStatusBar {
-                    background-color: #2d2d2d;
-                    border-top: 1px solid #404040;
-                    padding: 4px;
-                }
-                QStatusBar QLabel {
-                    padding: 2px 8px;
-                    color: #808080;
-                }
-                QToolBar#search {
-                    background-color: #2d2d2d;
-                    border-bottom: 1px solid #404040;
-                }
-                QToolBar#search QLineEdit {
-                    background-color: #2d2d2d;
-                    color: #e0e0e0;
-                    border: 1px solid #404040;
-                    border-radius: 4px;
-                    padding: 4px;
-                }
-                QToolBar#search QLineEdit:focus {
-                    border: 1px solid #0d47a1;
-                }
-                QToolBar#search QLabel {
-                    color: #e0e0e0;
+                QMenu::separator {
+                    height: 1px;
+                    background: #404040;
+                    margin: 4px 0;
                 }
             """)
-            # 검색 툴바 및 자식 위젯 직접 스타일 적용
-            if hasattr(self, 'search_toolbar'):
-                self.search_toolbar.setStyleSheet(
-                    "QToolBar { background: #2d2d2d; border-bottom: 1px solid #404040; }")
-            if hasattr(self, 'search_input'):
-                self.search_input.setStyleSheet(
-                    "QLineEdit { background: #2d2d2d; color: #e0e0e0; border: 1px solid #404040; border-radius: 4px; } QLineEdit:focus { border: 1px solid #0d47a1; }")
-            if hasattr(self, 'search_options'):
-                self.search_options.setStyleSheet(
-                    "QToolButton { color: #e0e0e0; background: #2d2d2d; } QToolButton:hover { background: #404040; }")
-            if hasattr(self, 'search_result_label'):
-                self.search_result_label.setStyleSheet(
-                    "color: #e0e0e0; padding: 0 8px;")
         else:
             self.setStyleSheet("""
-                QMainWindow {
-                    background-color: #f8f9fa;
-                }
-                QWidget {
-                    font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", "Arial", sans-serif;
+        QMainWindow {
+            background-color: #f8f9fa;
+        }
+        QWidget {
+            font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+            color: #2c3e50;
+        }
+        # 기타 라이트 테마 스타일 ... */
+        """)
+            if hasattr(self, 'sidebar'):
+                self.sidebar.setStyleSheet("")
+            if hasattr(self, 'project_list'):
+                self.project_list.setStyleSheet(f"""
+                    QListWidget {{
+                        background: #fff;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 7px;
+                        color: #333;
+                    }}
+                    QListWidget::item {{
+                        background: transparent;
+                        color: #333;
+                    }}
+                    QListWidget::item:selected, QListWidget::item:focus {{
+                        background: #1976d2;
+                        color: #fff;
+                    }}
+                    QListWidget::item:hover {{
+                        background: #f3f6fa;
+                    }}
+                """)
+            if hasattr(self, 'toolbar'):
+                toolbar_style = f"""
+                    QToolBar {{
+                        background: #fff !important;
+                        border-bottom: 1.5px solid #e0e0e0 !important;
+                        padding: 0 0 0 0 !important;
+                        spacing: 0px !important;
+                        min-height: 32px !important;
+                        margin: 0 !important;
+                    }}
+                    QToolButton {{
+                        padding: 3px 4px !important;
+                        border-radius: 5px !important;
+                        background: transparent !important;
+                        color: #1976d2 !important;
+                    }}
+                    QToolButton:checked {{
+                        background: #e3f0ff !important;
+                    }}
+                    QToolButton:hover {{
+                        background: #e8e8e8 !important;
+                    }}
+                    QToolButton:focus {{
+                        outline: 2px solid #1976d2 !important;
+                        background: #e3f0ff !important;
+                    }}
+                """
+                self.toolbar.setStyleSheet(toolbar_style)
+                if hasattr(self, 'search_toolbar'):
+                    self.search_toolbar.setStyleSheet(toolbar_style)
+            # 메뉴바/메뉴 라이트 테마 적용
+            self.menuBar().setStyleSheet(f"""
+                QMenuBar {{
+                    background: #fff;
                     color: #2c3e50;
-                }
-                QGroupBox {
-                    font-weight: 600;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    margin-top: 8px;
-                    background-color: #ffffff;
-                    padding: 12px;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-                    subcontrol-position: top left;
-                    padding: 0 8px;
-                    color: #34495e;
-        }
-        QListWidget {
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-            background-color: #ffffff;
-                    padding: 4px;
-        }
-        QListWidget::item {
-                    padding: 6px;
-                    border-radius: 4px;
-                    margin: 2px 0;
-        }
-        QListWidget::item:selected {
-                    background-color: #3498db;
-            color: white;
-        }
-                QListWidget::item:hover {
-                    background-color: #f0f0f0;
-                }
-        QTextEdit, QLineEdit {
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    padding: 6px;
-            background-color: #ffffff;
-                    selection-background-color: #3498db;
-            selection-color: white;
-        }
-        QTextEdit:focus, QLineEdit:focus {
-                    border: 1px solid #3498db;
-                    background-color: #ffffff;
-        }
-        QPushButton {
-                    background-color: #ffffff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                    min-height: 24px;
-                    font-weight: 500;
-        }
-        QPushButton:hover {
-                    background-color: #f8f9fa;
-                    border-color: #3498db;
-        }
-        QPushButton:pressed {
-                    background-color: #e9ecef;
-        }
-        QPushButton:disabled {
-                    background-color: #f8f9fa;
-                    color: #adb5bd;
-        }
-        QToolBar {
-                    background-color: #ffffff;
-                    border-bottom: 1px solid #e0e0e0;
-                    padding: 4px;
-                    spacing: 4px;
-                }
-                QToolButton {
-                    padding: 4px;
-                    border-radius: 4px;
+                }}
+                QMenuBar::item {{
                     background: transparent;
                     color: #2c3e50;
-        }
-        QToolButton:hover {
-                    background-color: #f8f9fa;
-        }
-        QToolButton:pressed {
-                    background-color: #e9ecef;
-        }
-        QMenu {
-            background-color: #ffffff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    padding: 4px;
-        }
-        QMenu::item {
-                    padding: 6px 24px;
-                    border-radius: 4px;
-        }
-        QMenu::item:selected {
-                    background-color: #3498db;
-            color: white;
-        }
-        QDialog {
-                    background-color: #f8f9fa;
-        }
-        QLabel {
-                    background-color: transparent;
-                }
-                QCheckBox {
-                    spacing: 8px;
-        }
-        QCheckBox::indicator {
-                    width: 18px;
-                    height: 18px;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 4px;
-                    background-color: #ffffff;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #3498db;
-                    border-color: #3498db;
-                }
-                QCheckBox::indicator:hover {
-                    border-color: #3498db;
-                }
-                QSlider::groove:horizontal {
-                    border: 1px solid #e0e0e0;
-                    background: #ffffff;
-                    height: 8px;
-                    border-radius: 4px;
-                }
-                QSlider::handle:horizontal {
-                    background: #3498db;
-                    border: none;
-            width: 16px;
-                    margin: -4px 0;
-                    border-radius: 8px;
-                }
-                QSlider::handle:horizontal:hover {
-                    background: #2980b9;
-                }
-                QStatusBar {
-                    background-color: #ffffff;
-                    border-top: 1px solid #e0e0e0;
-                    padding: 4px;
-                }
-                QStatusBar QLabel {
-                    padding: 2px 8px;
-                    color: #666;
-                }
-                QToolBar#search {
-                    background-color: #ffffff;
-                    border-bottom: 1px solid #e0e0e0;
-                }
-                QToolBar#search QLineEdit {
-                    background-color: #ffffff;
+                }}
+                QMenuBar::item:selected, QMenuBar::item:pressed {{
+                    background: #e3f0ff;
+                    color: #1976d2;
+                }}
+                QMenu {{
+                    background: #fff;
                     color: #2c3e50;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 4px;
-                    padding: 4px;
-                }
-                QToolBar#search QLineEdit:focus {
-                    border: 1px solid #3498db;
-                }
-                QToolBar#search QLabel {
+                    border: 1.5px solid #e0e0e0;
+                }}
+                QMenu::item {{
+                    background: transparent;
                     color: #2c3e50;
-                }
+                }}
+                QMenu::item:selected {{
+                    background: #1976d2;
+                    color: #fff;
+                }}
+                QMenu::separator {{
+                    height: 1px;
+                    background: #e0e0e0;
+                    margin: 4px 0;
+                }}
             """)
-            # 검색 툴바 및 자식 위젯 직접 스타일 적용
-            if hasattr(self, 'search_toolbar'):
-                self.search_toolbar.setStyleSheet(
-                    "QToolBar { background: #ffffff; border-bottom: 1px solid #e0e0e0; }")
-            if hasattr(self, 'search_input'):
+        # 다크 모드에서 검색 입력창 텍스트와 placeholder 모두 흰색으로
+        if hasattr(self, 'search_input'):
+            if self.dark_mode:
                 self.search_input.setStyleSheet(
-                    "QLineEdit { background: #ffffff; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 4px; } QLineEdit:focus { border: 1px solid #3498db; }")
-            if hasattr(self, 'search_options'):
-                self.search_options.setStyleSheet(
-                    "QToolButton { color: #2c3e50; background: #ffffff; } QToolButton:hover { background: #f8f9fa; }")
-            if hasattr(self, 'search_result_label'):
-                self.search_result_label.setStyleSheet(
-                    "color: #2c3e50; padding: 0 8px;")
+                    """
+                    QLineEdit {
+                        color: #fff;
+                        background: #232323;
+                        border: 1.5px solid #404040;
+                        border-radius: 6px;
+                        selection-background-color: #0d47a1;
+                        selection-color: #fff;
+                    }
+                    QLineEdit::placeholder {
+                        color: #fff;
+                    }
+                    """
+                )
+                # placeholder 강제 재설정 (일부 환경에서 필요)
+                ph = self.search_input.placeholderText()
+                self.search_input.setPlaceholderText('')
+                self.search_input.setPlaceholderText(ph)
+            else:
+                self.search_input.setStyleSheet("")
 
     def setup_search(self):
         """검색 기능 설정"""
@@ -3852,37 +3835,75 @@ class HelpDialog(QDialog):
         layout.addWidget(close_button)
         
     def setup_info_tab(self):
-        layout = QVBoxLayout(self.info_tab)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
-        
-        # 프로그램 정보 섹션
+        outer_layout = QVBoxLayout(self.info_tab)
+        # 프로그램 정보 QGroupBox
         info_group_box = QGroupBox("프로그램 정보")
-        info_group_box.setStyleSheet(
-            "QGroupBox { font-size: 10pt; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 8px; background: #fafbfc; }")
-        form_layout = QFormLayout()
+        info_outer_layout = QVBoxLayout(info_group_box)
+        info_content = QWidget()
+        info_content.setStyleSheet('background: #232323; color: #e0e0e0;')
+        form_layout = QFormLayout(info_content)
         form_layout.setSpacing(8)
-        form_layout.setContentsMargins(10, 6, 10, 10)
-        
+        form_layout.setContentsMargins(10, 26, 10, 10)
         app_name_label = QLabel("Anti-ADHD")
         font = app_name_label.font()
         font.setPointSize(13)
         font.setBold(True)
         app_name_label.setFont(font)
         app_name_label.setStyleSheet("color: #1565c0;")
-        
         form_layout.addRow(QLabel("이름:"), app_name_label)
         form_layout.addRow(QLabel("버전:"), QLabel("1.0.1"))
         form_layout.addRow(QLabel("개발자:"), QLabel("octaxii"))
-        
         github_link = QLabel(
-            "<a href=\"https://github.com/octaxii/anti-adhd\">GitHub 저장소</a>")
+            "<a href=\"https://github.com/octaxii/Anti-ADHD\">GitHub 저장소</a>")
         github_link.setOpenExternalLinks(True)
         form_layout.addRow(QLabel("GitHub:"), github_link)
-        
-        info_group_box.setLayout(form_layout)
-        layout.addWidget(info_group_box)
-        layout.addStretch()
+        info_content.setLayout(form_layout)
+        info_outer_layout.addWidget(info_content)
+        outer_layout.addWidget(info_group_box)
+        # 라이선스 QGroupBox
+        license_group_box = QGroupBox("라이선스")
+        license_outer_layout = QVBoxLayout(license_group_box)
+        license_content = QWidget()
+        license_content.setStyleSheet('background: #232323; color: #e0e0e0;')
+        license_layout = QVBoxLayout(license_content)
+        license_layout.setContentsMargins(10, 26, 10, 10)
+        license_layout.setSpacing(8)
+        license_text_edit = QTextEdit()
+        license_text_edit.setReadOnly(True)
+        license_text_edit.setStyleSheet(
+            "font-size: 8.5pt; background: #232323; color: #fff; border-radius: 6px; padding: 6px;")
+        mit_license_text = """
+MIT License
+
+Copyright (c) 2024 octaxii
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+        license_text_edit.setText(mit_license_text.strip())
+        license_layout.addSpacing(8)
+        license_layout.addWidget(license_text_edit)
+        license_layout.addSpacing(8)
+        license_content.setLayout(license_layout)
+        license_outer_layout.addWidget(license_content)
+        outer_layout.addWidget(license_group_box)
+        outer_layout.addStretch()
+        self.info_tab.setLayout(outer_layout)
         
     def setup_license_tab(self):
         layout = QVBoxLayout(self.license_tab)
@@ -4102,46 +4123,138 @@ STYLE_TEMPLATE = {
 
 def apply_theme(self):
     """현재 테마 적용"""
-    theme = 'DARK' if self.dark_mode else 'LIGHT'
-    self.setStyleSheet(STYLE_TEMPLATE[theme])
-    
-    # 검색 툴바 스타일 업데이트
+    if self.dark_mode:
+        self.setStyleSheet("""
+        QMainWindow {
+            background-color: #1e1e1e;
+        }
+        QWidget {
+            font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+            color: #e0e0e0;
+        }
+        # 기타 다크 테마 스타일 ... */
+        """)
+        # --- 다크 모드: 사이드바/프로젝트 리스트/툴바 스타일시트 동적 적용 ---
+        if hasattr(self, 'sidebar'):
+            self.sidebar.setStyleSheet("background: #232323; border: none;")
+        if hasattr(self, 'project_list'):
+            self.project_list.setStyleSheet("""
+                QListWidget {
+                    background: #232323;
+                    border: 1px solid #404040;
+                    border-radius: 7px;
+                    color: #e0e0e0;
+                }
+                QListWidget::item {
+                    background: transparent;
+                    color: #e0e0e0;
+                }
+                QListWidget::item:selected, QListWidget::item:focus {
+                    background: #0d47a1;
+                    color: #fff;
+                }
+                QListWidget::item:hover {
+                    background: #404040;
+                }
+            """)
+        toolbar_style = """
+                QToolBar {
+                    background: #232323 !important;
+                    border-bottom: 1.5px solid #404040 !important;
+                    padding: 0 0 0 0 !important;
+                    spacing: 0px !important;
+                    min-height: 32px !important;
+                    margin: 0 !important;
+                }
+                QToolButton {
+                    padding: 3px 4px !important;
+                    border-radius: 5px !important;
+                    background: transparent !important;
+                    color: #e0e0e0 !important;
+                }
+                QToolButton:checked {
+                    background: #0d47a1 !important;
+                }
+                QToolButton:hover {
+                    background: #404040 !important;
+                }
+                QToolButton:focus {
+                    outline: 2px solid #0d47a1 !important;
+                    background: #0d47a1 !important;
+                }
+            """
+    else:
+        self.setStyleSheet("""
+        QMainWindow {
+            background-color: #f8f9fa;
+        }
+        QWidget {
+            font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+            color: #2c3e50;
+        }
+        # 기타 라이트 테마 스타일 ... */
+        """)
+        # --- 라이트 모드: 기존 스타일시트 적용 ---
+        if hasattr(self, 'sidebar'):
+            self.sidebar.setStyleSheet("")
+        if hasattr(self, 'project_list'):
+            self.project_list.setStyleSheet(f"""
+                QListWidget {{
+                    background: #fff;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 7px;
+                    color: #333;
+                }}
+                QListWidget::item {{
+                    background: transparent;
+                    color: #333;
+                }}
+                QListWidget::item:selected, QListWidget::item:focus {{
+                    background: #1976d2;
+                    color: #fff;
+                }}
+                QListWidget::item:hover {{
+                    background: #f3f6fa;
+                }}
+            """)
+        toolbar_style = f"""
+                QToolBar {{
+                    background: #fff !important;
+                    border-bottom: 1.5px solid #e0e0e0 !important;
+                    padding: 0 0 0 0 !important;
+                    spacing: 0px !important;
+                    min-height: 32px !important;
+                    margin: 0 !important;
+                }}
+                QToolButton {{
+                    padding: 3px 4px !important;
+                    border-radius: 5px !important;
+                    background: transparent !important;
+                    color: #1976d2 !important;
+                }}
+                QToolButton:checked {{
+                    background: #e3f0ff !important;
+                }}
+                QToolButton:hover {{
+                    background: #e8e8e8 !important;
+                }}
+                QToolButton:focus {{
+                    outline: 2px solid #1976d2 !important;
+                    background: #e3f0ff !important;
+                }}
+            """
+    if hasattr(self, 'toolbar'):
+        self.toolbar.setStyleSheet(toolbar_style)
     if hasattr(self, 'search_toolbar'):
-        self.search_toolbar.setStyleSheet(f"""
-            QToolBar {{
-                background: {THEME[theme]['BG']};
-                border-bottom: 1px solid {THEME[theme]['BORDER']};
-            }}
-        """)
-    if hasattr(self, 'search_input'):
-        self.search_input.setStyleSheet(f"""
-            QLineEdit {{
-                background: {THEME[theme]['BG']};
-                color: {THEME[theme]['TEXT']};
-                border: 1px solid {THEME[theme]['BORDER']};
-                border-radius: 4px;
-            }}
-            QLineEdit:focus {{
-                border: 1px solid {THEME[theme]['ACCENT']};
-            }}
-        """)
-    if hasattr(self, 'search_options'):
-        self.search_options.setStyleSheet(f"""
-            QToolButton {{
-                color: {THEME[theme]['TEXT']};
-                background: {THEME[theme]['BG']};
-            }}
-            QToolButton:hover {{
-                background: {THEME[theme]['HOVER']};
-            }}
-        """)
-    if hasattr(self, 'search_result_label'):
-        self.search_result_label.setStyleSheet(f"""
-            color: {THEME[theme]['TEXT']};
-            padding: 0 8px;
-        """)
+        self.search_toolbar.setStyleSheet(toolbar_style)
+        # 다크 모드에서 검색 입력창 텍스트와 placeholder 모두 흰색으로
+        if hasattr(self, 'search_input'):
+            if self.dark_mode:
+                self.search_input.setStyleSheet("QLineEdit, QLineEdit::placeholder { color: #fff; }")
+            else:
+                self.search_input.setStyleSheet("")
 
-# --- 스타일 통합: 조니 아이브 총괄, 스티브 잡스 컨펌 ---
+# --- 스타일 통합: 졈니 아이브 총괄, 스티브 잡스 컨펌 ---
 APP_FONT = "'SF Pro', 'Helvetica Neue', 'Apple SD Gothic Neo', Arial, sans-serif"
 APP_BG = "#fff"
 APP_TEXT = "#222"
