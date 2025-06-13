@@ -289,7 +289,6 @@ class SettingsDialog(QDialog):
         lang_layout.setSpacing(4)
         lang_layout.setContentsMargins(6, 4, 6, 6)
         self.lang_combo = QComboBox()
-        self.lang_combo.setStyleSheet("font-size: 9pt;")
         self.lang_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.lang_combo.addItem(tr("Korean"), "ko")
         self.lang_combo.addItem(tr("English"), "en")
@@ -770,8 +769,12 @@ SOFTWARE.
             if hasattr(self, 'tab_widget'):
                 self.tab_widget.setStyleSheet('background: #232323; color: #e0e0e0;')
             self.setStyleSheet(self.styleSheet() + '\nQDialog { background: #232323; color: #e0e0e0; }')
+            if hasattr(self, 'lang_combo'):
+                self.lang_combo.setStyleSheet("font-size: 9pt; background: #232323; color: #e0e0e0;")
         else:
             self.setStyleSheet("")
+            if hasattr(self, 'lang_combo'):
+                self.lang_combo.setStyleSheet("font-size: 9pt; background: #fff; color: #222;")
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(current_data_dir=self.data_dir, 
