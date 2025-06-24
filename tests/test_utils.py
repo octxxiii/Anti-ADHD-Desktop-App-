@@ -9,6 +9,7 @@ from core.utils import (
     is_valid_date,
     sanitize_filename
 )
+from model.translation_model import TranslationModel
 
 def test_format_date():
     """날짜 포맷 테스트"""
@@ -52,4 +53,33 @@ def test_sanitize_filename():
     assert sanitize_filename("") == "untitled"
     
     # None 처리
-    assert sanitize_filename(None) == "untitled" 
+    assert sanitize_filename(None) == "untitled"
+
+def test_translation_model():
+    """번역 모델 테스트"""
+    # 번역 모델 초기화
+    model = TranslationModel()
+    
+    # 초기 언어가 한국어인지 확인
+    assert model.get_current_language() == "ko"
+    
+    # 영어로 전환
+    model.set_language("en")
+    assert model.get_current_language() == "en"
+    
+    # 영어 번역 확인
+    assert model.tr("설정") == "Settings"
+    assert model.tr("파일") == "File"
+    assert model.tr("새 프로젝트") == "New Project"
+    
+    # 한국어로 전환
+    model.set_language("ko")
+    assert model.get_current_language() == "ko"
+    
+    # 한국어 번역 확인
+    assert model.tr("Settings") == "설정"
+    assert model.tr("File") == "파일"
+    assert model.tr("New Project") == "새 프로젝트"
+    
+    # 존재하지 않는 텍스트는 원본 반환
+    assert model.tr("NonExistentText") == "NonExistentText" 

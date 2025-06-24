@@ -103,7 +103,16 @@ class SettingsDialog(QDialog):
 
     def on_language_changed(self, index):
         """언어 변경 시 처리"""
+        # 언어 설정 즉시 적용
+        language_code = self.language_combo.currentData()
+        if language_code:
+            self.translation.set_language(language_code)
         self.update_translations()
+        
+        # 부모 윈도우에 언어 변경 알림
+        if self.parent():
+            if hasattr(self.parent(), 'update_ui_language'):
+                self.parent().update_ui_language()
 
     def update_translations(self):
         """언어 변경 시 UI 업데이트"""

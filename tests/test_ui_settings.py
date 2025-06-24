@@ -4,7 +4,9 @@ ui/settings.py 테스트
 import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
-from ui.settings import SettingsDialog
+from PyQt5.QtWidgets import QTabWidget, QSlider, QCheckBox, QPushButton, QComboBox
+from view.settings_dialog import SettingsDialog
+from model.translation_model import TranslationModel
 
 @pytest.fixture
 def settings_dialog(qapp):
@@ -22,6 +24,51 @@ def test_initial_state(settings_dialog):
     tab_widget = settings_dialog.findChild(QTabWidget)
     assert tab_widget is not None
     assert tab_widget.count() > 0
+
+def test_language_switch(settings_dialog):
+    """언어 전환 테스트"""
+    # 일반 탭 선택
+    tab_widget = settings_dialog.findChild(QTabWidget)
+    tab_widget.setCurrentIndex(0)  # 일반 탭
+    
+    # 언어 콤보박스 찾기
+    language_combo = settings_dialog.language_combo
+    assert language_combo is not None
+    
+    # 초기 언어가 한국어인지 확인
+    assert language_combo.currentData() == "ko"
+    
+    # 영어로 전환
+    language_combo.setCurrentIndex(language_combo.findData("en"))
+    
+    # 영어로 전환되었는지 확인
+    assert language_combo.currentData() == "en"
+    assert settings_dialog.windowTitle() == "Settings"
+    
+    # 다시 한국어로 전환
+    language_combo.setCurrentIndex(language_combo.findData("ko"))
+    
+    # 한국어로 전환되었는지 확인
+    assert language_combo.currentData() == "ko"
+    assert settings_dialog.windowTitle() == "설정"
+
+def test_language_persistence(settings_dialog):
+    """언어 설정 유지 테스트"""
+    # 영어로 전환
+    language_combo = settings_dialog.language_combo
+    language_combo.setCurrentIndex(language_combo.findData("en"))
+    settings_dialog.accept()
+    
+    # 새로운 설정 다이얼로그 생성
+    new_dialog = SettingsDialog()
+    new_dialog.show()
+    
+    # 언어 설정이 유지되었는지 확인
+    assert new_dialog.language_combo.currentData() == "en"
+    
+    # 다시 한국어로 복구
+    new_dialog.language_combo.setCurrentIndex(new_dialog.language_combo.findData("ko"))
+    new_dialog.accept()
 
 def test_opacity_slider(settings_dialog):
     """투명도 슬라이더 테스트"""
