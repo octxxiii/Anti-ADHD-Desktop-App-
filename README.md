@@ -1,6 +1,10 @@
-# ANTI-ADHD: 4분할 체크리스트 관리 도구
+# ANTI-ADHD: 4분할 체크리스트 관리 도구 (PyQt6 MVVM)
 
 > **당신의 생각에 구조를, 하루에 질서를 부여하는 도구**
+
+## 🆕 새로운 PyQt6 MVVM 버전
+
+이 프로젝트는 PyQt6와 MVVM(Model-View-ViewModel) 패턴으로 완전히 재구성되었습니다.
 
 <p align="center">
   <img src="./img/AntiADHD.png" alt="ANTI-ADHD 메인화면" width="800"/>
@@ -93,15 +97,7 @@ ADHD와 함께하는 삶이 얼마나 도전적인지 깊이 이해합니다. �
 
 ## 🔧 설치 및 사용
 
-### 다운로드
-
-[Windows 실행 파일 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest/download/ANTI_ADHD.exe)
-
-### 상세 사용 설명서
-
-자세한 사용 방법은 [사용 설명서](https://octxxiii.github.io/Anti-ADHD/)를 참고하세요.
-
-### 직접 빌드하기
+### PyQt6 MVVM 버전 실행
 
 ```bash
 # 저장소 클론
@@ -113,11 +109,26 @@ python -m venv .venv
 .venv/Scripts/activate  # Windows
 source .venv/bin/activate  # Mac/Linux
 
-# 패키지 설치
-pip install -r requirements.txt
+# PyQt6 패키지 설치
+pip install -r requirements_new.txt
 
-# 실행 파일 생성
-pyinstaller --noconfirm --onefile --windowed --icon=app_icon.ico --name=ANTI_ADHD anti_adhd.py
+# 애플리케이션 실행
+python run_app.py
+```
+
+### 기존 버전 다운로드
+
+[Windows 실행 파일 다운로드](https://github.com/octxxiii/Anti-ADHD/releases/latest/download/ANTI_ADHD.exe)
+
+### 상세 사용 설명서
+
+자세한 사용 방법은 [사용 설명서](https://octxxiii.github.io/Anti-ADHD/)를 참고하세요.
+
+### 직접 빌드하기 (PyQt6 버전)
+
+```bash
+# PyQt6 버전 빌드
+pyinstaller --noconfirm --onefile --windowed --icon=icon1.ico --name=ANTI_ADHD_PyQt6 src/main.py
 ```
 
 ## 📘 사용 방법

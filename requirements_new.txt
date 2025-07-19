@@ -1,0 +1,17 @@
+# PyQt6 기반 요구사항
+PyQt6>=6.6.0
+PyQt6-Qt6>=6.6.0
+
+# 테스트
+pytest>=7.0.0
+pytest-qt>=4.2.0
+
+# 빌드
+pyinstaller>=5.0.0
+
+# 문서
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+
+# 유틸리티
+typing-extensions>=4.0.0

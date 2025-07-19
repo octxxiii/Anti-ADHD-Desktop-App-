@@ -1,0 +1,1 @@
+# Anti-ADHD PyQt6 MVVM Application
